@@ -41,3 +41,6 @@ Este comando reiniciará el sistema, siempre y cuando el usuario tenga los permi
 
 ### Configuración de Permisos
 La configuración de permisos para el uso del comando `ss` se gestiona a través de un archivo de configuración (who_is_simon.conf), donde se definen qué usuarios o grupos tienen acceso a qué comandos administrativos.
+
+
+<small><p style="font-weight: 100; font-size:10px; color: #cacaca;">Who tf is Simon?<p></small>
