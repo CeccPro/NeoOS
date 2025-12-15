@@ -40,23 +40,23 @@ Este documento contiene una checklist de todos los componentes y aspectos del pr
   - [X] Servicios del núcleo
   - [X] Modos de operación (usuario/kernel)
   
-- [ ] **Syscalls.md** - Sistema de llamadas al sistema
-  - [ ] Lista completa de syscalls disponibles
-  - [ ] Parámetros y valores de retorno
-  - [ ] Ejemplos de uso de cada syscall
-  - [ ] Convenciones de llamada
+- [X] **Syscalls.md** - Sistema de llamadas al sistema
+  - [X] Lista completa de syscalls disponibles
+  - [X] Parámetros y valores de retorno
+  - [X] Ejemplos de uso de cada syscall
+  - [X] Convenciones de llamada
   
-- [ ] **Interrupts.md** - Sistema de interrupciones
-  - [ ] Tabla de vectores de interrupción
-  - [ ] Manejadores de interrupciones (ISR)
-  - [ ] Interrupciones de hardware vs software
-  - [ ] Prioridades de interrupciones
+- [X] **Interrupts.md** - Sistema de interrupciones
+  - [X] Tabla de vectores de interrupción
+  - [X] Manejadores de interrupciones (ISR)
+  - [X] Interrupciones de hardware vs software
+  - [X] Prioridades de interrupciones
   
-- [ ] **Boot Process.md** - Proceso de arranque
-  - [ ] Bootloader
-  - [ ] Inicialización del kernel
-  - [ ] Carga de módulos esenciales
-  - [ ] Transición a modo usuario
+- [X] **Boot Process.md** - Proceso de arranque
+  - [X] Bootloader
+  - [X] Inicialización del kernel
+  - [X] Carga de módulos esenciales
+  - [X] Transición a modo usuario
 
 #### Interfaz y Shell
 - [ ] **NeoUI.md** - Interfaz de usuario basada en WebView
