@@ -34,11 +34,11 @@ Este documento contiene una checklist de todos los componentes y aspectos del pr
 ### ❌ Documentación Pendiente
 
 #### Componentes del Núcleo
-- [ ] **NeoKernel.md** - Documentación detallada del núcleo
-  - [ ] Arquitectura interna del kernel
-  - [ ] Ciclo de vida del kernel
-  - [ ] Servicios del núcleo
-  - [ ] Modos de operación (usuario/kernel)
+- [X] **NeoKernel.md** - Documentación detallada del núcleo
+  - [X] Arquitectura interna del kernel
+  - [X] Ciclo de vida del kernel
+  - [X] Servicios del núcleo
+  - [X] Modos de operación (usuario/kernel)
   
 - [ ] **Syscalls.md** - Sistema de llamadas al sistema
   - [ ] Lista completa de syscalls disponibles
