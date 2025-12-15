@@ -1,0 +1,9 @@
+# Ignore build artifacts
+/build/
+
+# Ignore editor artifacts
+*.swp
+*.swo
+.DS_Store
+.idea/
+.vscode/
