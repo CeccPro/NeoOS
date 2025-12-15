@@ -19,8 +19,9 @@ int read_from_disk(int disk_id, void *buffer, size_t size) {
     if (buffer == NULL || size == 0) {
         return E_INVAL;
     }
+
+    // Intentar leer desde el disco    
     
-    // Intentar leer del disco
     if (/* error durante la lectura */) {
         return E_IO; // Error de I/O
     }

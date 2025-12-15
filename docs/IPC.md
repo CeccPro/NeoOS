@@ -13,16 +13,29 @@ Para enviar un mensaje a un proceso con PID 1234, un proceso puede utilizar la s
 #include <ipc.h>
 int pid = 1234;
 char message[] = "Hola, este es un mensaje.";
-send_message(pid, message);
+sys_ipc_send(pid, message, sizeof(message));
 ```
 
 ### Ejemplo de Recepción de Mensajes
-Para recibir mensajes, un proceso puede utilizar la siguiente sintaxis:
+Para recibir la cola mensajes, un proceso puede utilizar la siguiente sintaxis:
 ```c
 #include <ipc.h>
-char buffer[256];
-receive_message(buffer, sizeof(buffer));
-printf("Mensaje recibido: %s\n", buffer);
+ipc_message_t msg;
+int ret = sys_ipc_recv(&msg, IPC_BLOCK);
+
+if (ret == E_OK) {
+    printf("Mensaje de %d: %s\n", msg.sender_pid, (char *)msg.buffer);
+    sys_ipc_free(&msg);
+}
+```
+
+Internamente cada mensaje es un struct con la siguiente forma:
+```c
+typedef struct {
+    pid_t sender_pid;
+    size_t size;
+    void *buffer;
+} ipc_message_t;
 ```
 
 ## Sincronización de Procesos

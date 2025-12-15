@@ -16,6 +16,7 @@ El archivo `error.h` define una serie de constantes que representan diferentes c
 #define E_TIMEOUT      -9   // Operación agotó el tiempo
 #define E_MODULE_ERR   -10  // Error de módulo
 #define E_NOT_IMPL     -11  // Funcionalidad no implementada
+#define E_NOT_SUPPORTED -12 // Funcionalidad no soportada
 ```
 
 ## Descripción de los Códigos de Error
@@ -31,7 +32,7 @@ Cada código de error tiene un significado específico que ayuda a los desarroll
 - `E_PERM (-8)`: Indica que la operación fue denegada debido a permisos insuficientes.
 - `E_TIMEOUT (-9)`: Indica que la operación no se completó dentro del tiempo esperado.
 
-Para más detalles sobre errores específicos, lea la documentación del error detallada en ./docs/errors/[Error_Name].md
+Para más detalles sobre errores específicos, lea la documentación del error detallada en /docs/errors/[Error_Name].md
 
 ## Uso de los Códigos de Error
 Estos códigos de error son utilizados en diversas funciones y módulos del sistema operativo para comunicar el estado de las operaciones. Los desarrolladores deben verificar estos códigos después de realizar operaciones críticas para manejar adecuadamente los errores y garantizar la estabilidad del sistema.
@@ -42,7 +43,7 @@ Por ejemplo, una función que intenta abrir un archivo puede devolver `E_NOENT` 
 Para utilizar los códigos de error definidos en `error.h`, simplemente incluya el archivo en su código fuente y utilice las constantes definidas para verificar el estado de las operaciones. Aquí hay un ejemplo básico:
 ```c
 #include <error.h>
-int result = open_file("mi_archivo.txt");
+int result = sys_open("mi_archivo.txt", O_RDONLY);
 if (result == E_NOENT) {
     // Manejar el caso donde el archivo no existe
 } else if (result != E_OK) {

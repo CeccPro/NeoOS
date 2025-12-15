@@ -16,8 +16,9 @@ Por ejemplo, una función que realiza una operación de lectura de archivo puede
 Aquí hay un ejemplo básico de cómo se utiliza `E_OK` en una función que abre un archivo:
 ```c
 #include <error.h>
+#include <syscalls.h>
 int open_file(const char *filename) {
-    // Lógica para abrir el archivo
+    int result = sys_open(filename, O_RDONLY);
     if (/* archivo abierto correctamente */) {
         return E_OK; // Indica éxito
     } else {

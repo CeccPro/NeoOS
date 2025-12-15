@@ -14,12 +14,13 @@ El código `E_INVAL` se utiliza en diversas partes del sistema operativo cuando 
 Aquí hay un ejemplo básico de cómo se podría utilizar `E_INVAL` en una función que valida sus argumentos:
 ```c
 #include <error.h>
+#include <syscalls.h>
 
 int set_priority(int priority) {
     if (priority < 0 || priority > 255) {
         return E_INVAL; // Prioridad fuera de rango válido
     }
-    // Lógica para establecer la prioridad
+    sys_setpriority(priority);
     return E_OK;
 }
 
