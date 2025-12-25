@@ -40,8 +40,21 @@ static uint32_t* kernel_page_directory = NULL;
 static uint32_t kernel_heap_current = 0;
 static uint32_t kernel_heap_end = 0;
 
-#define KERNEL_HEAP_START 0xC0000000
-#define KERNEL_HEAP_SIZE  0x10000000  // 256 MB
+// Offset para el mapeo de memoria física en el espacio virtual del kernel
+// Toda la RAM física se mapea en 0xC0000000 (3 GB)
+#define PHYS_TO_VIRT_OFFSET 0xC0000000
+
+#define KERNEL_HEAP_START 0xF0000000  // Mover el heap más arriba
+#define KERNEL_HEAP_SIZE  0x08000000  // 128 MB
+
+// Estructura para bloques de memoria del heap
+typedef struct heap_block {
+    size_t size;                // Tamaño del bloque (incluyendo el header)
+    bool free;                  // Si el bloque está libre
+    struct heap_block* next;    // Siguiente bloque
+} heap_block_t;
+
+static heap_block_t* heap_head = NULL;
 
 // Macros para el bitmap
 #define PMM_BLOCKS_PER_BYTE 8
@@ -58,6 +71,25 @@ static inline void pmm_bitmap_clear(uint32_t bit) {
 
 static inline bool pmm_bitmap_test(uint32_t bit) {
     return pmm_bitmap[bit / PMM_BITS_PER_INDEX] & (1 << (bit % PMM_BITS_PER_INDEX));
+}
+
+/**
+ * @brief Convierte una dirección física a virtual
+ */
+static inline void* phys_to_virt(void* phys) {
+    return (void*)((uint32_t)phys + PHYS_TO_VIRT_OFFSET);
+}
+
+/**
+ * @brief Convierte una dirección virtual a física
+ */
+static inline void* virt_to_phys(void* virt) {
+    uint32_t addr = (uint32_t)virt;
+    if (addr >= PHYS_TO_VIRT_OFFSET) {
+        return (void*)(addr - PHYS_TO_VIRT_OFFSET);
+    }
+    // Si está en el rango de identity mapping, es igual
+    return virt;
 }
 
 /**
@@ -206,9 +238,20 @@ static uint32_t* vmm_get_page_table(uint32_t* page_dir, uint32_t vaddr, bool cre
         }
         
         // Crear nueva tabla de páginas
-        uint32_t* page_table = (uint32_t*)pmm_alloc_page();
-        if (!page_table) {
+        void* phys = pmm_alloc_page();
+        if (!phys) {
             return NULL;
+        }
+        
+        // Antes de habilitar paginación, usamos direcciones físicas directamente
+        // Después, usamos phys_to_virt
+        uint32_t* page_table;
+        if ((uint32_t)page_dir >= PHYS_TO_VIRT_OFFSET) {
+            // Paginación ya habilitada
+            page_table = (uint32_t*)phys_to_virt(phys);
+        } else {
+            // Paginación aún no habilitada
+            page_table = (uint32_t*)phys;
         }
         
         // Limpiar la tabla
@@ -216,11 +259,19 @@ static uint32_t* vmm_get_page_table(uint32_t* page_dir, uint32_t vaddr, bool cre
             page_table[i] = 0;
         }
         
-        // Añadir la tabla al directorio
-        page_dir[pd_index] = (uint32_t)page_table | PAGE_PRESENT | PAGE_WRITE;
+        // Añadir la tabla al directorio (siempre usar dirección física)
+        page_dir[pd_index] = (uint32_t)phys | PAGE_PRESENT | PAGE_WRITE;
     }
     
-    return (uint32_t*)(page_dir[pd_index] & ~0xFFF);
+    // Obtener la dirección física de la tabla
+    uint32_t phys_addr = page_dir[pd_index] & ~0xFFF;
+    
+    // Convertir según si la paginación está habilitada
+    if ((uint32_t)page_dir >= PHYS_TO_VIRT_OFFSET) {
+        return (uint32_t*)phys_to_virt((void*)phys_addr);
+    } else {
+        return (uint32_t*)phys_addr;
+    }
 }
 
 /**
@@ -303,10 +354,13 @@ static void vmm_enable_paging(uint32_t* page_dir) {
  */
 static error_t vmm_init(void) {
     // Crear el directorio de páginas del kernel
-    kernel_page_directory = (uint32_t*)pmm_alloc_page();
-    if (!kernel_page_directory) {
+    void* phys = pmm_alloc_page();
+    if (!phys) {
         return E_NOMEM;
     }
+    
+    // Antes de habilitar paginación, podemos acceder directamente
+    kernel_page_directory = (uint32_t*)phys;
     
     // Limpiar el directorio
     for (int i = 0; i < 1024; i++) {
@@ -314,12 +368,26 @@ static error_t vmm_init(void) {
     }
     
     // Mapeo de identidad de los primeros 4 MB (donde está el kernel)
+    // Esto es necesario para que el código siga funcionando después de habilitar paginación
     for (uint32_t i = 0; i < 0x400000; i += PAGE_SIZE) {
         vmm_map_page((void*)i, (void*)i, PAGE_PRESENT | PAGE_WRITE);
     }
     
+    // Mapear los primeros 16 MB de RAM física en PHYS_TO_VIRT_OFFSET (0xC0000000)
+    // Esto es suficiente para el arranque inicial
+    // El resto se puede mapear on-demand si es necesario
+    for (uint32_t i = 0; i < 0x1000000; i += PAGE_SIZE) {  // 16 MB
+        void* virt = (void*)(i + PHYS_TO_VIRT_OFFSET);
+        void* phys_addr = (void*)i;
+        vmm_map_page(virt, phys_addr, PAGE_PRESENT | PAGE_WRITE);
+    }
+    
     // Habilitar paginación
     vmm_enable_paging(kernel_page_directory);
+    
+    // Ahora que la paginación está habilitada, actualizamos el puntero
+    // al directorio para usar la dirección virtual
+    kernel_page_directory = (uint32_t*)phys_to_virt(phys);
     
     // Inicializar el heap del kernel
     kernel_heap_current = KERNEL_HEAP_START;
@@ -329,18 +397,29 @@ static error_t vmm_init(void) {
 }
 
 /**
- * @brief Asigna memoria del heap del kernel
+ * @brief Encuentra un bloque libre que pueda contener size bytes
  */
-void* kmalloc(size_t size) {
-    if (size == 0) {
-        return NULL;
+static heap_block_t* find_free_block(heap_block_t** last, size_t size) {
+    heap_block_t* current = heap_head;
+    while (current && !(current->free && current->size >= size)) {
+        *last = current;
+        current = current->next;
     }
-    
-    // Alinear a 4 bytes
-    size = (size + 3) & ~3;
-    
+    return current;
+}
+
+/**
+ * @brief Expande el heap para crear un nuevo bloque
+ */
+static heap_block_t* expand_heap(heap_block_t* last, size_t size) {
+    heap_block_t* block;
     uint32_t addr = kernel_heap_current;
-    kernel_heap_current += size;
+    uint32_t total_size = size + sizeof(heap_block_t);
+    
+    // Alinear a 8 bytes
+    total_size = (total_size + 7) & ~7;
+    
+    kernel_heap_current += total_size;
     
     if (kernel_heap_current >= kernel_heap_end) {
         return NULL;
@@ -357,20 +436,119 @@ void* kmalloc(size_t size) {
                 return NULL;
             }
             vmm_map_page((void*)page, phys, PAGE_PRESENT | PAGE_WRITE);
+            
+            // Limpiar la nueva página
+            uint32_t* ptr = (uint32_t*)page;
+            for (int i = 0; i < 1024; i++) {
+                ptr[i] = 0;
+            }
         }
     }
     
-    return (void*)addr;
+    block = (heap_block_t*)addr;
+    block->size = total_size;
+    block->free = false;
+    block->next = NULL;
+    
+    if (last) {
+        last->next = block;
+    }
+    
+    return block;
+}
+
+/**
+ * @brief Divide un bloque si es demasiado grande
+ */
+static void split_block(heap_block_t* block, size_t size) {
+    size_t total_needed = size + sizeof(heap_block_t);
+    total_needed = (total_needed + 7) & ~7;
+    
+    if (block->size >= total_needed + sizeof(heap_block_t) + 8) {
+        heap_block_t* new_block = (heap_block_t*)((uint8_t*)block + total_needed);
+        new_block->size = block->size - total_needed;
+        new_block->free = true;
+        new_block->next = block->next;
+        
+        block->size = total_needed;
+        block->next = new_block;
+    }
+}
+
+/**
+ * @brief Fusiona bloques libres adyacentes
+ */
+static void coalesce_blocks(void) {
+    heap_block_t* current = heap_head;
+    
+    while (current && current->next) {
+        if (current->free && current->next->free) {
+            current->size += current->next->size;
+            current->next = current->next->next;
+        } else {
+            current = current->next;
+        }
+    }
+}
+
+/**
+ * @brief Asigna memoria del heap del kernel
+ */
+void* kmalloc(size_t size) {
+    if (size == 0) {
+        return NULL;
+    }
+    
+    heap_block_t* block;
+    heap_block_t* last = NULL;
+    
+    if (!heap_head) {
+        // Primera asignación, expandir el heap
+        block = expand_heap(NULL, size);
+        if (!block) {
+            return NULL;
+        }
+        heap_head = block;
+    } else {
+        // Buscar un bloque libre
+        block = find_free_block(&last, size);
+        if (!block) {
+            // No hay bloques libres suficientemente grandes, expandir
+            block = expand_heap(last, size);
+            if (!block) {
+                return NULL;
+            }
+        } else {
+            // Reutilizar bloque libre
+            block->free = false;
+            split_block(block, size);
+        }
+    }
+    
+    return (void*)((uint8_t*)block + sizeof(heap_block_t));
 }
 
 /**
  * @brief Libera memoria del heap del kernel
- * Nota: Esta es una implementación simple que no reutiliza memoria
  */
 void kfree(void* ptr) {
-    // En esta implementación simple, no hacemos nada
-    // Una implementación completa requeriría un heap manager con free lists
-    (void)ptr;
+    if (!ptr) {
+        return;
+    }
+    
+    // Obtener el header del bloque
+    heap_block_t* block = (heap_block_t*)((uint8_t*)ptr - sizeof(heap_block_t));
+    
+    // Verificar que sea un puntero válido del heap
+    if ((uint32_t)block < KERNEL_HEAP_START || (uint32_t)block >= kernel_heap_current) {
+        return;
+    }
+    
+    // Marcar como libre
+    block->free = true;
+    
+    // Fusionar bloques libres adyacentes
+    coalesce_blocks();
 }
 
 /**
@@ -398,53 +576,59 @@ error_t memory_init(multiboot_info_t* mbi) {
  * @brief Crea un nuevo espacio de direcciones
  */
 void* vmm_create_address_space(void) {
-    uint32_t* page_dir = (uint32_t*)pmm_alloc_page();
-    if (!page_dir) {
+    void* phys = pmm_alloc_page();
+    if (!phys) {
         return NULL;
     }
+    
+    uint32_t* page_dir = (uint32_t*)phys_to_virt(phys);
     
     // Limpiar el directorio
     for (int i = 0; i < 1024; i++) {
         page_dir[i] = 0;
     }
     
-    // Copiar las entradas del kernel (mapeo superior)
+    // Copiar las entradas del kernel (mapeo superior - 768 a 1023)
+    // Esto incluye tanto el mapeo de RAM física como el heap del kernel
     for (int i = 768; i < 1024; i++) {
         page_dir[i] = kernel_page_directory[i];
     }
     
-    return page_dir;
+    // Retornar la dirección física del directorio (para cargar en CR3)
+    return phys;
 }
 
 /**
  * @brief Destruye un espacio de direcciones
  */
-void vmm_destroy_address_space(void* page_dir) {
-    if (!page_dir || page_dir == kernel_page_directory) {
+void vmm_destroy_address_space(void* page_dir_phys) {
+    if (!page_dir_phys || page_dir_phys == virt_to_phys(kernel_page_directory)) {
         return;
     }
     
-    uint32_t* pd = (uint32_t*)page_dir;
+    uint32_t* pd = (uint32_t*)phys_to_virt(page_dir_phys);
     
     // Liberar todas las tablas de páginas de usuario (0-767)
     for (int i = 0; i < 768; i++) {
         if (pd[i] & PAGE_PRESENT) {
-            uint32_t* page_table = (uint32_t*)(pd[i] & ~0xFFF);
+            uint32_t phys_addr = pd[i] & ~0xFFF;
+            uint32_t* page_table = (uint32_t*)phys_to_virt((void*)phys_addr);
             
             // Liberar todas las páginas de esta tabla
             for (int j = 0; j < 1024; j++) {
                 if (page_table[j] & PAGE_PRESENT) {
-                    pmm_free_page((void*)(page_table[j] & ~0xFFF));
+                    void* page_phys = (void*)(page_table[j] & ~0xFFF);
+                    pmm_free_page(page_phys);
                 }
             }
             
             // Liberar la tabla misma
-            pmm_free_page(page_table);
+            pmm_free_page((void*)phys_addr);
         }
     }
     
     // Liberar el directorio
-    pmm_free_page(page_dir);
+    pmm_free_page(page_dir_phys);
 }
 
 /**

@@ -21,6 +21,7 @@
 #include "../include/idt.h"
 #include "../include/kernel.h"
 #include "../include/vga.h"
+#include "../include/timer.h"
 
 // Array de entradas de la IDT
 static struct idt_entry idt_entries[IDT_ENTRIES];
@@ -212,6 +213,12 @@ void interrupt_handler(struct registers* regs) {
     
     // Manejar IRQs (32-47)
     if (regs->int_no >= 32 && regs->int_no <= 47) {
+        // Manejar IRQ específicos
+        if (regs->int_no == 32) {
+            // IRQ0 - Timer
+            timer_handler();
+        }
+        
         // Enviar EOI (End Of Interrupt) al PIC
         if (regs->int_no >= 40) {
             // Si el IRQ vino del PIC esclavo, enviar EOI a ambos

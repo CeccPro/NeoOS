@@ -28,6 +28,7 @@ C_SRC = core/kernel_main.c \
         core/gdt.c \
         core/idt.c \
         core/memory.c \
+        core/timer.c \
         drivers/vga.c
 
 # Archivos objeto

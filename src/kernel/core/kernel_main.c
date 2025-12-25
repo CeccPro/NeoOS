@@ -28,6 +28,7 @@
 #include "../include/gdt.h"
 #include "../include/idt.h"
 #include "../include/memory.h"
+#include "../include/timer.h"
 
 /**
  * @brief Punto de entrada principal del kernel
@@ -85,8 +86,19 @@ void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
     vga_put_dec(free_mem / 1024 / 1024);
     vga_puts(" MB\n");
     
-    // TODO: Inicializar el timer
+    // Inicializar el timer
     vga_puts("[...] Initializing Timer\n");
+    timer_init(TIMER_FREQUENCY);
+    vga_puts("[OK] Timer initialized at ");
+    vga_put_dec(TIMER_FREQUENCY);
+    vga_puts(" Hz\n");
+    
+    // Probar el timer con una pequeña espera
+    vga_puts("[TEST] Waiting 1 second...\n");
+    timer_sleep(1000);
+    vga_puts("[OK] Timer test passed - Uptime: ");
+    vga_put_dec(timer_get_seconds());
+    vga_puts(" seconds\n");
     
     // TODO: Inicializar el teclado
     vga_puts("[...] Initializing Keyboard\n");
