@@ -36,4 +36,4 @@ help:
 commit:
 	@git add .
 	@git commit -m "Actualización de NeoOS"
-	@git push>dev/null 2>&1 || echo "No se pudo pushear los cambios. Verifica tu conexión o configuración de Git."
+	@git push>/dev/null 2>&1 || echo "No se pudo pushear los cambios. Verifica tu conexión o configuración de Git."
