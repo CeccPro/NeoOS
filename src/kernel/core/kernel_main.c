@@ -35,7 +35,7 @@ void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
     // Inicializar el terminal VGA
     vga_init();
     
-    vga_puts("NeoOS Kernel v0.1.0\n");
+    vga_puts("NeoOS Kernel " KERNEL_VERSION " (" BUILD_DATE ")\n");
     vga_puts("===================\n\n");
     
     // Verificar que el bootloader es compatible con multiboot
