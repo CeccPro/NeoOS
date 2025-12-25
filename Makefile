@@ -37,3 +37,4 @@ commit:
 	@git add .>/dev/null 2>&1 || echo "No hay archivos para añadir."
 	@git commit -m "Actualización de NeoOS">/dev/null 2>&1 || echo "No hay cambios para commitear."
 	@git push>/dev/null 2>&1 || echo "No se pudo pushear los cambios."
+	@echo "Cambios commiteados y pusheados a Git."
