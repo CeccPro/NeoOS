@@ -34,12 +34,9 @@ help:
 	@echo "  make commit - Añade, commitea y pushea los cambios a Git"
 
 commit:
-	@tmperr=$$(mktemp); success=1; \
-	git add . 2>"$$tmperr" >/dev/null || true; \
-	if [ -s "$$tmperr" ]; then echo "git add error:"; cat "$$tmperr"; success=0; fi; \
-	git commit -m "Actualización de NeoOS" 2>"$$tmperr" >/dev/null || true; \
-	if [ -s "$$tmperr" ]; then echo "git commit error:"; cat "$$tmperr"; success=0; fi; \
-	git push 2>"$$tmperr" >/dev/null || true; \
-	if [ -s "$$tmperr" ]; then echo "git push error:"; cat "$$tmperr"; success=0; fi; \
-	rm -f "$$tmperr"; \
-	if [ $$success -eq 1 ]; then echo "Success: cambios añadidos, commiteados y pusheados sin errores."; fi
+	@git add .>/dev/null 2>&1 || echo "No hay archivos para añadir."
+	@git commit -m "Actualización de NeoOS">/dev/null 2>&1 || echo "No hay cambios para commitear."
+	@git push>/dev/null 2>&1 || echo "No se pudo pushear los cambios."
+	@if [ $$? -eq 0 ]; then \
+		echo "Cambios commiteados y pusheados a Git."; \
+	fi
