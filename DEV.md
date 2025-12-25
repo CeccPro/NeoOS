@@ -40,6 +40,7 @@ La estructura de carpetas del proyecto NeoOS es la siguiente:
 ├── LICENSE                 # Archivo de licencia GNU v3.0
 ├── setup.sh                # Script de configuración del entorno de desarrollo
 ├── README.md               # Archivo README principal
+├── DOCUMENTATION_CHECKLIST.md # Lista de verificación para la documentación
 └── DEV.md                  # Documentación superficial para desarrolladores
 ```
 
