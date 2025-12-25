@@ -35,9 +35,6 @@ void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
     // Inicializar el terminal VGA
     vga_init();
     
-    // Suprimir warning de parámetro no usado (se usará más adelante)
-    UNUSED(mbi);
-    
     vga_puts("NeoOS Kernel v0.1.0\n");
     vga_puts("===================\n\n");
     
@@ -46,6 +43,13 @@ void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
         vga_puts("ERROR: Invalid multiboot magic number!\n");
         vga_puts("Expected: 0x2BADB002\n");
         goto halt;
+    }
+
+    if (mbi->flags & (1 << 2)) { // Bit 2 = cmdline presente
+        const char* cmdline = (const char*) mbi->cmdline;
+        vga_puts("[CMDLINE] ");
+        vga_puts(cmdline);
+        vga_puts("\n");
     }
     
     vga_puts("[OK] Multiboot header verified\n");
@@ -91,3 +95,6 @@ halt:
         asm volatile("hlt");
     }
 }
+
+// This is for u, Maia <3
+// - CeccPro
