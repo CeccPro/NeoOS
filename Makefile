@@ -1,5 +1,4 @@
 # Makefile principal de NeoOS
-
 .PHONY: all kernel iso run clean commit help
 
 all: kernel

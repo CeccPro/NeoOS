@@ -24,7 +24,7 @@
 #include "../include/kernel.h"
 #include "../include/vga.h"
 #include "../include/multiboot.h"
-#include "../include/config.h"
+#include "../include/kconfig.h"
 #include "../include/gdt.h"
 #include "../include/idt.h"
 #include "../include/memory.h"
