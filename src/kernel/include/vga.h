@@ -56,6 +56,7 @@ void vga_clear(void);
 
 // Establece el color de texto
 void vga_set_color(vga_color_t fg, vga_color_t bg);
+void vga_setcolor(uint8_t color);
 
 // Escribe un carácter en la posición actual del cursor
 void vga_putchar(char c);
@@ -65,6 +66,7 @@ void vga_puts(const char* str);
 
 // Escribe un número en hexadecimal
 void vga_put_hex(uint32_t num);
+void vga_puthex(uint32_t num);
 
 // Escribe un número en decimal
 void vga_put_dec(uint32_t num);

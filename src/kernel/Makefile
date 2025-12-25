@@ -1,5 +1,8 @@
 # Makefile para el kernel de NeoOS
 
+# Configuración de la VM
+VM_MEM_SIZE = 512M
+
 # Herramientas
 AS = nasm
 CC = gcc
@@ -16,12 +19,19 @@ BUILD_DIR = ../../build
 KERNEL_BIN = $(BUILD_DIR)/neoos.bin
 
 # Archivos fuente
-ASM_SRC = boot/boot.asm
+ASM_SRC = boot/boot.asm \
+          core/gdt_flush.asm \
+          core/idt_flush.asm \
+          core/isr.asm
+
 C_SRC = core/kernel_main.c \
+        core/gdt.c \
+        core/idt.c \
+        core/memory.c \
         drivers/vga.c
 
 # Archivos objeto
-ASM_OBJ = $(BUILD_DIR)/boot.o
+ASM_OBJ = $(ASM_SRC:%.asm=$(BUILD_DIR)/%.o)
 C_OBJ = $(C_SRC:%.c=$(BUILD_DIR)/%.o)
 
 # Regla por defecto
@@ -32,7 +42,8 @@ $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)/core $(BUILD_DIR)/drivers
 
 # Compilar ensamblador
-$(BUILD_DIR)/boot.o: $(ASM_SRC) | $(BUILD_DIR)
+$(BUILD_DIR)/%.o: %.asm | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
 	$(AS) $(ASFLAGS) $< -o $@
 
 # Compilar C
@@ -62,7 +73,7 @@ iso: $(KERNEL_BIN)
 # Ejecutar con QEMU
 run: iso
 	if [ -f $(BUILD_DIR)/neoos.iso ]; then \
-		qemu-system-i386 -cdrom $(BUILD_DIR)/neoos.iso; \
+		qemu-system-i386 -cdrom $(BUILD_DIR)/neoos.iso -m ${VM_MEM_SIZE}; \
 	else \
 		echo "Error: La imagen ISO no existe. Por favor, ejecuta 'make iso' primero."; \
 		exit 1; \

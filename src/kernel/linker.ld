@@ -29,6 +29,9 @@ SECTIONS
         *(.bss)
     }
 
+    /* Símbolo que marca el final del kernel */
+    end = .;
+
     /* Descartar secciones innecesarias */
     /DISCARD/ : {
         *(.comment)

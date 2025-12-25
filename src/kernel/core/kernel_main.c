@@ -25,6 +25,9 @@
 #include "../include/vga.h"
 #include "../include/multiboot.h"
 #include "../include/config.h"
+#include "../include/gdt.h"
+#include "../include/idt.h"
+#include "../include/memory.h"
 
 /**
  * @brief Punto de entrada principal del kernel
@@ -55,17 +58,32 @@ void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
     
     vga_puts("[OK] Multiboot header verified\n");
     
-    // TODO: Inicializar Memory Manager
-    vga_puts("[...] Initializing Memory Manager\n");
-    
-    // TODO: Inicializar IDT (Interrupt Descriptor Table)
-    vga_puts("[...] Initializing IDT\n");
-    
-    // TODO: Inicializar GDT (Global Descriptor Table)
+    // Inicializar GDT (Global Descriptor Table)
     vga_puts("[...] Initializing GDT\n");
+    gdt_init();
+    vga_puts("[OK] GDT initialized\n");
     
-    // TODO: Inicializar PIC (Programmable Interrupt Controller)
-    vga_puts("[...] Initializing PIC\n");
+    // Inicializar IDT (Interrupt Descriptor Table)
+    vga_puts("[...] Initializing IDT\n");
+    idt_init();
+    vga_puts("[OK] IDT initialized\n");
+    
+    // Inicializar Memory Manager
+    vga_puts("[...] Initializing Memory Manager\n");
+    error_t mem_err = memory_init(mbi);
+    if (mem_err != E_OK) {
+        vga_puts("[FAIL] Memory initialization failed!\n");
+        goto halt;
+    }
+    
+    // Mostrar información de memoria
+    size_t total_mem = pmm_get_total_memory();
+    size_t free_mem = pmm_get_free_memory();
+    vga_puts("[OK] Memory Manager initialized - Total: ");
+    vga_put_dec(total_mem / 1024 / 1024);
+    vga_puts(" MB, Free: ");
+    vga_put_dec(free_mem / 1024 / 1024);
+    vga_puts(" MB\n");
     
     // TODO: Inicializar el timer
     vga_puts("[...] Initializing Timer\n");

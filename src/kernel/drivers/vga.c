@@ -197,3 +197,17 @@ void vga_put_dec(uint32_t num) {
         vga_putchar(buffer[j]);
     }
 }
+
+/**
+ * @brief Alias para vga_put_hex (compatibilidad)
+ */
+void vga_puthex(uint32_t num) {
+    vga_put_hex(num);
+}
+
+/**
+ * @brief Establece el color directamente con un byte
+ */
+void vga_setcolor(uint8_t color) {
+    terminal_color = color;
+}
