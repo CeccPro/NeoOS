@@ -31,6 +31,7 @@ help:
 	@echo "  make run    - Compila y ejecuta en QEMU"
 	@echo "  make clean  - Limpia archivos de compilación"
 	@echo "  make help   - Muestra esta ayuda"
+	@echo "  make commit - Añade, commitea y pushea los cambios a Git"
 
 commit:
 	@git add .
