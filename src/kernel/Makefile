@@ -53,7 +53,7 @@ iso: $(KERNEL_BIN)
 	echo 'set default=0' >> $(BUILD_DIR)/iso/boot/grub/grub.cfg
 	echo '' >> $(BUILD_DIR)/iso/boot/grub/grub.cfg
 	echo 'menuentry "NeoOS" {' >> $(BUILD_DIR)/iso/boot/grub/grub.cfg
-	echo '	multiboot /boot/neoos.bin' >> $(BUILD_DIR)/iso/boot/grub/grub.cfg
+	echo '	multiboot /boot/neoos.bin init=/initimage.img' >> $(BUILD_DIR)/iso/boot/grub/grub.cfg
 	echo '	boot' >> $(BUILD_DIR)/iso/boot/grub/grub.cfg
 	echo '}' >> $(BUILD_DIR)/iso/boot/grub/grub.cfg
 	grub-mkrescue -o $(BUILD_DIR)/neoos.iso $(BUILD_DIR)/iso
@@ -61,8 +61,8 @@ iso: $(KERNEL_BIN)
 
 # Ejecutar con QEMU
 run: iso
-	if [ -f $(BUILD_DIR)/neoos.iso ]; then \
-		qemu-system-i386 -cdrom $(BUILD_DIR)/neoos.iso; \
+	@if [ -f $(BUILD_DIR)/neoos.iso ]; then \
+		qemu-system-x86_64 -cdrom $(BUILD_DIR)/neoos.iso; \
 	else \
 		echo "Error: La imagen ISO no existe. Por favor, ejecuta 'make iso' primero."; \
 		exit 1; \
