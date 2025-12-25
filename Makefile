@@ -1,6 +1,6 @@
 # Makefile principal de NeoOS
 
-.PHONY: all kernel iso run clean commit help
+.PHONY: all kernel iso run clean
 
 all: kernel
 
@@ -31,8 +31,3 @@ help:
 	@echo "  make run    - Compila y ejecuta en QEMU"
 	@echo "  make clean  - Limpia archivos de compilación"
 	@echo "  make help   - Muestra esta ayuda"
-
-commit:
-	@git add .
-	@git commit -m "Actualización de NeoOS"
-	@git push
