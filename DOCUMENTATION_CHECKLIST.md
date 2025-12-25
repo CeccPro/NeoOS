@@ -83,6 +83,11 @@ Este documento contiene una checklist de todos los componentes y aspectos del pr
   - [ ] Hot-plugging
   - [ ] Gestión de dispositivos virtuales
   
+- [X] **NeoFS.md** - Sistema de archivos NeoFS
+  - [X] Arquitectura de NeoFS
+  - [X] Qué es NeoFS
+  - [X] Características principales
+
 - [ ] **File System.md** - Sistema de archivos
   - [ ] Estructura del sistema de archivos
   - [ ] Sistema de archivos virtual (VFS)

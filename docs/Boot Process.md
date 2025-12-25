@@ -4,7 +4,7 @@ El proceso de arranque de NeoOS es una secuencia crítica que inicia el sistema 
 ## Etapas del Proceso de Arranque
 1. **Bootloader**: El bootloader es el primer código que se ejecuta cuando la máquina se enciende. Su función principal es cargar el kernel de NeoOS en la memoria. El bootloader por defecto que utiliza NeoOS es GRUB (GRand Unified Bootloader), aunque también se pueden utilizar otros bootloaders compatibles.
 2. **Carga del Kernel**: Una vez que el bootloader está en ejecución, localiza el archivo del kernel de NeoOS (generalmente ubicado en `/boot/neoos/kernel.img`) y lo carga en la memoria. El bootloader también puede pasar parámetros al kernel, como opciones de arranque y configuraciones específicas.
-3. **Inicialización del Kernel**: Después de que el kernel ha sido cargado en la memoria, comienza su proceso de inicialización. Durante esta etapa, el kernel configura las estructuras de datos internas, inicializa los controladores de hardware esenciales y establece el entorno necesario para la ejecución del sistema operativo.
+3. **Inicialización del Kernel**: Después de que el kernel ha sido cargado en la memoria, comienza su proceso de inicialización. Durante esta etapa, el kernel configura las estructuras de datos internas, inicializa los controladores de hardware esenciales y establece el entorno necesario para la ejecución del sistema operativo. Para esto se utiliza InitImage, una imagen preconfigurada que contiene los componentes esenciales para la inicialización del sistema, la cual se pasa como un parametro desde el multiboot.
 4. **Carga de Módulos Esenciales**: NeoOS utiliza un sistema modular, por lo que durante la inicialización del kernel, se cargan los módulos esenciales que proporcionan funcionalidades adicionales, como el gestor de memoria, el planificador de procesos y los controladores de dispositivos.
 5. **Montaje del Sistema de Archivos**: El kernel monta el sistema de archivos raíz, que es necesario para acceder a los archivos y directorios del sistema operativo. Esto incluye la configuración de puntos de montaje y la verificación de la integridad del sistema de archivos.
 6. **Transición a Modo Usuario**: Una vez que el kernel ha completado su inicialización y ha montado el sistema de archivos, transfiere el control al proceso init (el primer proceso en modo usuario). Este proceso es responsable de iniciar otros servicios del sistema y preparar el entorno para que los usuarios puedan interactuar con el sistema operativo.
@@ -16,7 +16,7 @@ set timeout=0
 set default=0
 
 menuentry "NeoOS" {
-	multiboot /boot/neoos.bin
+	multiboot /boot/neoos.bin initimage=/boot/initimage.img arch=amd64
 	boot
 }
 ```
