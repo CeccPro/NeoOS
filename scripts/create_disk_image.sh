@@ -76,26 +76,7 @@ sudo mkdir -p "$MOUNT_POINT/boot/grub"
 sudo cp "$KERNEL_ELF" "$MOUNT_POINT/boot/neoos"
 echo "Kernel copiado: $(basename "$KERNEL_ELF") - $(ls -lh "$KERNEL_ELF" | awk '{print $5}')"
 # Crear configuración de GRUB
-cat > /tmp/grub.cfg << 'EOF'
-# NeoOS GRUB Configuration
-set timeout=3
-set default=0
-
-menuentry "NeoOS v0.1.0" {
-    set root=(hd0,msdos1)
-    multiboot /boot/neoos
-    boot
-}
-
-menuentry "NeoOS v0.1.0 (Debug Mode)" {
-    set root=(hd0,msdos1)
-    multiboot /boot/neoos --debug --verbose
-    boot
-}
-EOF
-
-sudo cp /tmp/grub.cfg "$MOUNT_POINT/boot/grub/grub.cfg"
-rm /tmp/grub.cfg
+sudo cp "$PROJECT_ROOT/src/kernel/grub.cfg" "$MOUNT_POINT/boot/grub/grub.cfg"
 
 # Instalar GRUB en el MBR
 sudo grub-install --target=i386-pc --boot-directory="$MOUNT_POINT/boot" "$LOOP_DEV" 2>&1 | grep -v "Installation finished"

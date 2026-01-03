@@ -3,7 +3,7 @@
  * Entry point principal del kernel
  */
 
-#include "../core/include/kmain.h"
+#include "../../core/include/kmain.h"
 
 /**
  * Kernel Main - Entry point del kernel en C
@@ -56,7 +56,7 @@ void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
         vga_write("         |  \\| |/ _ \\/ _ \\| | \\___ \\_\n");
         vga_write("         | |\\  |  __/ (_) | |_| ___) |\n");
         vga_write("         |_| \\_|\\___|\\___/ \\___/____/ \n");
-        vga_write("                 NeoOS Kernel v");
+        vga_write("              NeoOS Kernel v");
         vga_write(KERNEL_VERSION);
         vga_write("\n         (Build: ");
         vga_write(BUILD_DATE);
@@ -117,8 +117,6 @@ void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
         vga_set_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
         vga_write("Cargando particion de NeoOS...\n");
         // TODO: Implementar carga de partición NeoOS
-        vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
-        vga_write("Funcion no implementada.\n");
     }
     
     // Loop infinito - el kernel no debe terminar
