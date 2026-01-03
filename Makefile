@@ -1,5 +1,5 @@
 # Makefile principal de NeoOS
-.PHONY: all kernel iso run clean commit help
+.PHONY: all kernel img run clean commit help
 
 all: kernel
 
@@ -7,11 +7,11 @@ kernel:
 	@echo "Compilando el kernel..."
 	@cd src/kernel && $(MAKE)
 
-iso: kernel
-	@echo "Creando imagen ISO..."
-	@cd src/kernel && $(MAKE) iso
+img: kernel
+	@echo "Creando imagen de disco..."
+	@cd src/kernel && $(MAKE) img
 
-run: iso
+run:
 	@echo "Ejecutando NeoOS en QEMU..."
 	@cd src/kernel && $(MAKE) run
 
@@ -26,8 +26,9 @@ help:
 	@echo "Comandos disponibles:"
 	@echo "  make all    - Compila el kernel"
 	@echo "  make kernel - Compila el kernel"
-	@echo "  make iso    - Crea una imagen ISO booteable"
-	@echo "  make run    - Compila y ejecuta en QEMU"
+	@echo "  make img    - Crea una imagen de disco con particiones (EXT4 + NeoFS)"
+	@echo "  make iso    - Crea una imagen ISO booteable (legacy)"
+	@echo "  make run    - Compila y ejecuta en QEMU desde imagen de disco"
 	@echo "  make clean  - Limpia archivos de compilación"
 	@echo "  make help   - Muestra esta ayuda"
 	@echo "  make commit - Añade, commitea y pushea los cambios a Git"
@@ -36,3 +37,6 @@ commit:
 	@git add .>/dev/null 2>&1 || echo "No hay archivos para añadir."
 	@git commit -m "Actualización de NeoOS">/dev/null 2>&1 || echo "No hay cambios para commitear."
 	@git push>/dev/null 2>&1 || echo "No se pudo pushear los cambios."
+
+check:
+	@cd src/kernel && $(MAKE) check

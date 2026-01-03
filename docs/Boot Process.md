@@ -16,7 +16,7 @@ set timeout=0
 set default=0
 
 menuentry "NeoOS" {
-	multiboot /boot/neoos.bin initimage=/boot/initimage.img arch=amd64
+	multiboot /boot/neoos initimage=/boot/initimage.img arch=amd64
 	boot
 }
 ```

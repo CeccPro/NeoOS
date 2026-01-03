@@ -1,40 +1,50 @@
-/* Linker script para el kernel de NeoOS */
+/**
+ * NeoOS Linker Script
+ * Define el layout de memoria del kernel
+ */
 
+/* Formato de salida */
+OUTPUT_FORMAT(elf32-i386)
+OUTPUT_ARCH(i386)
+
+/* Entry point del kernel */
 ENTRY(_start)
 
+/* Definir las secciones de memoria */
 SECTIONS
 {
-    /* El kernel comienza en 1 MiB */
-    . = 1M;
+    /* El kernel será cargado en 1MB de memoria física */
+    . = 0x00100000;
 
-    /* Sección de código */
-    .text ALIGN(4K) : {
+    /* Inicio del kernel */
+    __kernel_start = .;
+
+    /* Sección .multiboot - DEBE estar al inicio del binario */
+    .boot : {
         *(.multiboot)
         *(.text)
     }
 
-    /* Sección de datos de solo lectura */
-    .rodata ALIGN(4K) : {
+    /* Sección .rodata - Datos de solo lectura */
+    .rodata ALIGN(4096) : {
         *(.rodata)
+        *(.rodata.*)
     }
 
-    /* Sección de datos inicializados */
-    .data ALIGN(4K) : {
+    /* Sección .data - Datos inicializados */
+    .data ALIGN(4096) : {
         *(.data)
+        *(.data.*)
     }
 
-    /* Sección de datos no inicializados (BSS) */
-    .bss ALIGN(4K) : {
+    /* Sección .bss - Datos no inicializados */
+    .bss ALIGN(4096) : {
         *(COMMON)
         *(.bss)
+        *(.bss.*)
     }
 
-    /* Símbolo que marca el final del kernel */
-    end = .;
-
-    /* Descartar secciones innecesarias */
-    /DISCARD/ : {
-        *(.comment)
-        *(.eh_frame)
-    }
+    /* Fin del kernel */
+    __kernel_end = .;
+    __kernel_size = __kernel_end - __kernel_start;
 }

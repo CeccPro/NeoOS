@@ -34,7 +34,7 @@ Este documento contiene una checklist de todos los componentes y aspectos del pr
 ### ❌ Documentación Pendiente
 
 #### Componentes del Núcleo
-- [X] **NeoKernel.md** - Documentación detallada del núcleo
+- [X] **NeoCore.md** - Documentación detallada del núcleo
   - [X] Arquitectura interna del kernel
   - [X] Ciclo de vida del kernel
   - [X] Servicios del núcleo
@@ -227,7 +227,7 @@ Este documento contiene una checklist de todos los componentes y aspectos del pr
 2. Boot Process.md
 3. Interrupts.md
 4. File System.md
-5. NeoKernel.md
+5. NeoCore.md
 6. Configuration.md
 
 ### 🟡 Media Prioridad (Importante para desarrollo)

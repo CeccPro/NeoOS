@@ -24,7 +24,7 @@
 │    └───────────────────────┬─────────────────────────┘      │
 │                            │                                 │
 │    ┌───────────────────────┴─────────────────────────┐      │
-│    │           NeoKernel Core (kernel_main.c)        │      │
+│    │           NeoCore Core (kernel_main.c)        │      │
 │    │  ┌────────────┐  ┌──────────┐  ┌────────────┐  │      │
 │    │  │    IDT     │  │   GDT    │  │    PIC     │  │      │
 │    │  │ Interrupts │  │ Segments │  │  Timer     │  │      │
@@ -88,7 +88,7 @@
    ▼
 2. GRUB (Bootloader)
    │
-   ├── Carga neoos.bin en memoria (0x00100000 - 1MB)
+   ├── Carga neoos en memoria (0x00100000 - 1MB)
    ├── Carga initimage.img (módulos esenciales)
    └── Pasa información Multiboot
    │

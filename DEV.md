@@ -4,13 +4,13 @@ Este documento proporciona una introducción general técnica de NeoOS, un siste
 ## Arquitectura del Sistema
 NeoOS está construido sobre una arquitectura modular que permite a los usuarios personalizar y optimizar su sistema operativo según sus necesidades específicas. La arquitectura se compone de los siguientes componentes principales:
 
-1. **Núcleo Modular (NeoKernel)**: El núcleo de NeoOS está diseñado para ser ligero y eficiente, permitiendo la carga dinámica de módulos según las necesidades del usuario. Esto facilita la personalización y mejora el rendimiento del sistema. Hay un par de módulos necesarios para el funcionamiento básico del sistema, pero la mayoría son opcionales y pueden ser añadidos o eliminados según las preferencias del usuario.
+1. **Núcleo Modular (NeoCore)**: El núcleo de NeoOS está diseñado para ser ligero y eficiente, permitiendo la carga dinámica de módulos según las necesidades del usuario. Esto facilita la personalización y mejora el rendimiento del sistema. Hay un par de módulos necesarios para el funcionamiento básico del sistema, pero la mayoría son opcionales y pueden ser añadidos o eliminados según las preferencias del usuario.
 
-NeoKernel es un semi-microkernel (Tiene características de microkernel y monolítico) que maneja las operaciones básicas del sistema, la gestión de memoria, la planificación de procesos y la comunicación entre módulos. Su diseño modular permite a los desarrolladores crear y agregar nuevos módulos sin afectar la estabilidad del núcleo principal. Internamente, solo el IPC, la gestión de syscalls, el manejo de interrupciones y el Module Manager residen en el núcleo, mientras que otros servicios del sistema operativo se implementan como módulos separados.
+NeoCore es un semi-microkernel (Tiene características de microkernel y monolítico) que maneja las operaciones básicas del sistema, la gestión de memoria, la planificación de procesos y la comunicación entre módulos. Su diseño modular permite a los desarrolladores crear y agregar nuevos módulos sin afectar la estabilidad del núcleo principal. Internamente, solo el IPC, la gestión de syscalls, el manejo de interrupciones y el Module Manager residen en el núcleo, mientras que otros servicios del sistema operativo se implementan como módulos separados.
 
 2. **Interfaz de Usuario basada en WebView (NeoUI)**: La interfaz de usuario de NeoOS está construida utilizando tecnologías web modernas a través de WebView. Esto permite una experiencia de usuario fluida y adaptable, facilitando la integración de aplicaciones web y servicios en el sistema operativo. Con este enfoque, los desarrolladores pueden crear aplicaciones utilizando HTML, CSS y JavaScript, lo que amplía las posibilidades de desarrollo, además de poder modificar más fácilmente la interfaz del sistema operativo con conocimiento básico de tecnologías web.
 
-3. **Shell Integrado (NeoSH)**: NeoOS incluye un shell integrado que permite a los usuarios interactuar con el sistema operativo a través de comandos. El shell está diseñado para ser intuitivo y fácil de usar,   proporcionando acceso rápido a las funciones del sistema. Se ejecuta directamente como un módulo dentro de NeoKernel, lo que permite una integración perfecta con el resto del sistema operativo.
+3. **Shell Integrado (NeoSH)**: NeoOS incluye un shell integrado que permite a los usuarios interactuar con el sistema operativo a través de comandos. El shell está diseñado para ser intuitivo y fácil de usar, proporcionando acceso rápido a las funciones del sistema. Se ejecuta directamente como un módulo dentro de NeoCore, lo que permite una integración perfecta con el resto del sistema operativo. (Es similar a Bash en Linux).
 
 ## Tecnologías Utilizadas
 NeoOS utiliza una combinación de tecnologías modernas para garantizar un rendimiento óptimo y una experiencia de usuario excepcional. Algunas de las tecnologías clave incluyen:
@@ -33,6 +33,15 @@ La estructura de carpetas del proyecto NeoOS es la siguiente:
 ├── docs/                   # Documentación individual de cada parte del proyecto
 ├── src/                    # Código fuente del sistema operativo
 │   ├── kernel/             # Código del núcleo modular
+│   │   ├── arch            # Código específico de la arquitectura (x86, ARM, etc.)
+│   │   ├── drivers/        # Controladores de hardware básicos
+│   │   ├── fs/             # Soporte a sistemas de archivos básicos. (El soporte avanzado se monta como módulos)
+│   │   ├── ipc/            # Mecanismos de comunicación entre procesos
+│   │   ├── memory/         # Gestión de memoria
+│   │   ├── modules/        # Módulo gestor de módulos y módulos básicos
+│   │   ├── core/           # Funciones centrales del núcleo (Entry point y cosas muy low-level)
+│   │   ├── syscalls/       # Implementación de llamadas al sistema
+│   │   └── utils/          # Utilidades y funciones auxiliares del núcleo
 │   ├── ui/                 # Código de la interfaz de usuario basada en WebView
 │   └── modules/            # Módulos adicionales del sistema operativo
 ├── tests/                  # Pruebas y casos de prueba
