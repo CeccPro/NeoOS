@@ -2,15 +2,53 @@
 Este documento proporciona una introducción general técnica de NeoOS, un sistema operativo de código abierto diseñado para ser ligero, rápido y seguro. Aquí se muestran superficialmente la arquitectura interna, las tecnologías utilizadas y las directrices para desarrolladores interesados en contribuir al proyecto.
 
 ## Arquitectura del Sistema
-NeoOS está construido sobre una arquitectura modular que permite a los usuarios personalizar y optimizar su sistema operativo según sus necesidades específicas. La arquitectura se compone de los siguientes componentes principales:
+NeoOS está construido sobre una arquitectura modular que permitirá a los usuarios personalizar y optimizar su sistema operativo según sus necesidades específicas.
 
-1. **Núcleo Modular (NeoCore)**: El núcleo de NeoOS está diseñado para ser ligero y eficiente, permitiendo la carga dinámica de módulos según las necesidades del usuario. Esto facilita la personalización y mejora el rendimiento del sistema. Hay un par de módulos necesarios para el funcionamiento básico del sistema, pero la mayoría son opcionales y pueden ser añadidos o eliminados según las preferencias del usuario.
+### Estado Actual de Implementación
 
-NeoCore es un semi-microkernel (Tiene características de microkernel y monolítico) que maneja las operaciones básicas del sistema, la gestión de memoria, la planificación de procesos y la comunicación entre módulos. Su diseño modular permite a los desarrolladores crear y agregar nuevos módulos sin afectar la estabilidad del núcleo principal. Internamente, solo el IPC, la gestión de syscalls, el manejo de interrupciones y el Module Manager residen en el núcleo, mientras que otros servicios del sistema operativo se implementan como módulos separados.
+#### [Implementado]
+1. **Entry Point y Boot**: El kernel se carga correctamente mediante GRUB usando el estándar Multiboot. El entry point en assembly (`kmain.S`) configura la pila y llama a `kernel_main()`.
 
-2. **Interfaz de Usuario basada en WebView (NeoUI)**: La interfaz de usuario de NeoOS está construida utilizando tecnologías web modernas a través de WebView. Esto permite una experiencia de usuario fluida y adaptable, facilitando la integración de aplicaciones web y servicios en el sistema operativo. Con este enfoque, los desarrolladores pueden crear aplicaciones utilizando HTML, CSS y JavaScript, lo que amplía las posibilidades de desarrollo, además de poder modificar más fácilmente la interfaz del sistema operativo con conocimiento básico de tecnologías web.
+2. **Driver VGA**: Terminal VGA funcional en modo texto 80x25 con soporte para:
+   - Colores configurables (16 colores de texto, 8 de fondo)
+   - Scrolling automático
+   - Caracteres especiales (newline, tab, carriage return)
+   - Funciones de escritura hexadecimal y decimal
 
-3. **Shell Integrado (NeoSH)**: NeoOS incluye un shell integrado que permite a los usuarios interactuar con el sistema operativo a través de comandos. El shell está diseñado para ser intuitivo y fácil de usar, proporcionando acceso rápido a las funciones del sistema. Se ejecuta directamente como un módulo dentro de NeoCore, lo que permite una integración perfecta con el resto del sistema operativo. (Es similar a Bash en Linux).
+3. **Configuración del Kernel (kconfig)**: Sistema de configuración global que permite activar modos debug y verbose mediante parámetros de línea de comandos (`--debug`, `--verbose`).
+
+4. **Códigos de Error**: Sistema completo de códigos de error con 13 códigos definidos y función `error_to_string()` para convertir códigos a strings descriptivos.
+
+5. **Memory Manager Completo**:
+   - **PMM (Physical Memory Manager)**: Gestión de páginas físicas con bitmap. Parsea el mapa de memoria de Multiboot y mantiene seguimiento de páginas libres/ocupadas.
+   - **VMM (Virtual Memory Manager)**: Paginación de 2 niveles con identity mapping de los primeros 128MB. Usa estructuras estáticas para evitar problemas de bootstrapping.
+   - **Heap del Kernel**: Asignador dinámico con `kmalloc()`/`kfree()` usando lista enlazada de bloques. Heap ubicado en 4MB con tamaño de 4MB.
+
+6. **Biblioteca Estándar**: Funciones básicas de strings (`memset`, `memcpy`, `strlen`, `strcmp`, `strstr`) y definiciones de tipos básicos.
+
+#### [Pendiente de Implementación]
+1. **NeoCore (Núcleo Semi-Microkernel)**: El diseño conceptual existe pero los componentes core aún no están implementados:
+   - GDT (Global Descriptor Table)
+   - IDT (Interrupt Descriptor Table)
+   - Manejo de interrupciones
+   - PIC (Programmable Interrupt Controller)
+   - Syscall handler
+
+2. **Process Scheduler**: Sistema de planificación de procesos, PCB (Process Control Block), context switching.
+
+3. **IPC Manager**: Comunicación entre procesos, message queues, signals, shared memory.
+
+4. **Module Manager**: Sistema de carga dinámica de módulos con soporte hotplug.
+
+5. **Sistema de Archivos (NeoFS)**: Sistema de archivos virtual y soporte para diferentes filesystems.
+
+6. **Drivers Adicionales**: Teclado, timer PIT, controlador de disco.
+
+7. **Transición a Modo Usuario**: Cambio de ring 0 (kernel) a ring 3 (usuario), proceso init.
+
+2. **Interfaz de Usuario basada en WebView (NeoUI)**: La interfaz de usuario de NeoOS estará construida utilizando tecnologías web modernas a través de WebView. Esto permitirá una experiencia de usuario fluida y adaptable, facilitando la integración de aplicaciones web y servicios en el sistema operativo. Con este enfoque, los desarrolladores podrán crear aplicaciones utilizando HTML, CSS y JavaScript.
+
+3. **Shell Integrado (NeoSH)**: NeoOS incluirá un shell integrado que permitirá a los usuarios interactuar con el sistema operativo a través de comandos. Se ejecutará directamente como un módulo dentro de NeoCore (similar a Bash en Linux).
 
 ## Tecnologías Utilizadas
 NeoOS utiliza una combinación de tecnologías modernas para garantizar un rendimiento óptimo y una experiencia de usuario excepcional. Algunas de las tecnologías clave incluyen:
@@ -28,31 +66,97 @@ Los desarrolladores interesados en contribuir a NeoOS deben seguir las siguiente
 5. **Compatibilidad con GPL v3.0**: Todas las contribuciones deben cumplir con los términos de la Licencia Pública General GNU v3.0 bajo la cual NeoOS está licenciado, y al contribuir, los desarrolladores aceptan que su código será licenciado bajo los mismos términos.
 
 ## Estructura de carpetas
-La estructura de carpetas del proyecto NeoOS es la siguiente:
-```NeoOS/
-├── docs/                   # Documentación individual de cada parte del proyecto
-├── src/                    # Código fuente del sistema operativo
-│   ├── kernel/             # Código del núcleo modular
-│   │   ├── arch            # Código específico de la arquitectura (x86, ARM, etc.)
-│   │   ├── drivers/        # Controladores de hardware básicos
-│   │   ├── fs/             # Soporte a sistemas de archivos básicos. (El soporte avanzado se monta como módulos)
-│   │   ├── ipc/            # Mecanismos de comunicación entre procesos
-│   │   ├── memory/         # Gestión de memoria
-│   │   ├── modules/        # Módulo gestor de módulos y módulos básicos
-│   │   ├── core/           # Funciones centrales del núcleo (Entry point y cosas muy low-level)
-│   │   ├── syscalls/       # Implementación de llamadas al sistema
-│   │   ├── lib/         # Implementación de librerías estándar del sistema
-│   │   └── utils/          # Utilidades y funciones auxiliares del núcleo
-│   ├── ui/                 # Código de la interfaz de usuario basada en WebView
-│   └── modules/            # Módulos adicionales del sistema operativo
-├── tests/                  # Pruebas y casos de prueba
-├── Makefile                # Archivo de construcción del proyecto
-├── LICENSE                 # Archivo de licencia GNU v3.0
-├── setup.sh                # Script de configuración del entorno de desarrollo
-├── README.md               # Archivo README principal
-├── DOCUMENTATION_CHECKLIST.md # Lista de verificación para la documentación
-└── DEV.md                  # Documentación superficial para desarrolladores
+La estructura de carpetas real del proyecto NeoOS es la siguiente:
 ```
+NeoOS/
+├── docs/                       # Documentación individual de cada parte del proyecto
+│   ├── Boot Process.md
+│   ├── Core Modules.md
+│   ├── Errors.md
+│   ├── Interrupts.md
+│   ├── IPC.md
+│   ├── Kernel Initialization.md
+│   ├── Memory Manager.md
+│   ├── MID and PID.md
+│   ├── Module Manager.md
+│   ├── Modules.md
+│   ├── NeoCore.md
+│   ├── NeoFS.md
+│   ├── Process Scheduler.md
+│   ├── SS.md
+│   ├── Syscalls.md
+│   ├── errors/                 # Documentación detallada de cada error
+│   └── Syscalls/               # Documentación detallada de cada syscall
+├── src/
+│   └── kernel/                 # Código del kernel
+│       ├── arch/               # Código específico de arquitectura
+│       │   ├── x86/
+│       │   │   └── boot/
+│       │   │       └── kmain.S # Entry point x86 [Impl]
+│       │   └── arm/
+│       │       └── boot/
+│       │           └── kmain.S # Entry point ARM [Pend]
+│       ├── core/               # Núcleo del kernel [Impl]
+│       │   ├── src/
+│       │   │   ├── kmain.c     # Función principal [Impl]
+│       │   │   ├── kconfig.c   # Configuración global [Impl]
+│       │   │   └── error.c     # Códigos de error [Impl]
+│       │   └── include/
+│       │       ├── kmain.h
+│       │       ├── kconfig.h
+│       │       └── error.h
+│       ├── drivers/            # Drivers de hardware
+│       │   ├── src/
+│       │   │   └── vga.c       # Driver VGA [Impl]
+│       │   └── include/
+│       │       └── vga.h
+│       ├── lib/                # Biblioteca estándar del kernel [Impl]
+│       │   ├── src/
+│       │   │   └── string.c    # Funciones de strings [Impl]
+│       │   └── include/
+│       │       ├── string.h
+│       │       ├── types.h     # Tipos básicos [Impl]
+│       │       └── multiboot.h # Protocolo Multiboot [Impl]
+│       ├── memory/             # Gestión de memoria [Impl]
+│       │   ├── src/
+│       │   │   ├── memory.c    # Coordinador [Impl]
+│       │   │   ├── pmm.c       # Physical Memory Manager [Impl]
+│       │   │   ├── vmm.c       # Virtual Memory Manager [Impl]
+│       │   │   └── heap.c      # Heap del kernel [Impl]
+│       │   └── include/
+│       │       └── memory.h
+│       ├── grub.cfg            # Configuración de GRUB [Impl]
+│       ├── linker.ld           # Linker script [Impl]
+│       ├── Makefile            # Build del kernel [Impl]
+│       └── README.md
+├── build/                      # Archivos compilados
+│   ├── neoos                   # Binario del kernel
+│   └── obj/                    # Archivos objeto
+├── scripts/
+│   └── create_disk_image.sh    # Script para crear imagen de disco
+├── Makefile                    # Makefile principal del proyecto [Impl]
+├── setup.sh                    # Script de configuración del entorno [Impl]
+├── LICENSE                     # Licencia GNU v3.0
+├── README.md                   # README principal
+├── ARCHITECTURE.md             # Arquitectura del sistema
+├── DEV.md                      # Documentación para desarrolladores
+└── DOCUMENTATION_CHECKLIST.md  # Checklist de documentación
+```
+
+**Leyenda:**
+- [Impl] = Implementado y funcional
+- [Pend] = Pendiente de implementación
+- (Sin símbolo) = Planificado pero no iniciado
+
+**Nota**: Los siguientes directorios mencionados en documentación antigua **NO EXISTEN AÚN**:
+- `src/kernel/fs/` - Sistema de archivos
+- `src/kernel/ipc/` - Comunicación entre procesos
+- `src/kernel/modules/` - Gestor de módulos
+- `src/kernel/syscalls/` - Handler de syscalls
+- `src/kernel/utils/` - Utilidades auxiliares
+- `src/ui/` - Interfaz de usuario basada en WebView
+- `src/modules/` - Módulos adicionales del sistema
+- `tests/` - Pruebas y casos de prueba
 
 ## Cómo compilar
 Para compilar NeoOS, siga estos pasos:

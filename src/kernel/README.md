@@ -6,22 +6,50 @@ Este directorio contiene el código fuente del kernel NeoCore de NeoOS.
 
 ```
 src/kernel/
-├── arch/                  # Código específico de arquitectura
-│   ├── x86/              # Arquitectura x86
-│   │   └── boot/         # Código de arranque
-│   │       └── kmain.S   # Entry point en Assembly
-│   └── arm/              # Arquitectura ARM (futuro)
-├── core/                 # Código central del kernel
-│   └── kmain.c           # Entry point en C
-├── drivers/              # Controladores de hardware
-│   └── vga.c            # Driver VGA para modo texto
-├── include/              # Archivos de cabecera
-│   ├── types.h          # Tipos básicos
-│   ├── multiboot.h      # Definiciones Multiboot
-│   └── vga.h            # Header del driver VGA
-├── Makefile             # Sistema de compilación
-├── linker.ld            # Script del linker
-└── grub.cfg             # Configuración de GRUB
+├── arch/                     # Código específico de arquitectura
+│   ├── x86/
+│   │   └── boot/
+│   │       └── kmain.S       # Entry point x86 [Impl]
+│   └── arm/
+│       └── boot/
+│           └── kmain.S       # Entry point ARM [Pend]
+├── core/                     # Núcleo del kernel [Impl]
+│   ├── src/
+│   │   ├── kmain.c           # Función principal [Impl]
+│   │   ├── kconfig.c         # Configuración global [Impl]
+│   │   └── error.c           # Códigos de error [Impl]
+│   └── include/
+│       ├── kmain.h
+│       ├── kconfig.h
+│       └── error.h
+├── drivers/                  # Controladores de hardware
+│   ├── src/
+│   │   └── vga.c            # Driver VGA [Impl]
+│   └── include/
+│       └── vga.h
+├── lib/                      # Biblioteca estándar [Impl]
+│   ├── src/
+│   │   └── string.c         # Funciones de strings [Impl]
+│   └── include/
+│       ├── string.h
+│       ├── types.h          # Tipos básicos [Impl]
+│       └── multiboot.h      # Protocolo Multiboot [Impl]
+├── memory/                   # Gestión de memoria [Impl]
+│   ├── src/
+│   │   ├── memory.c         # Coordinador [Impl]
+│   │   ├── pmm.c            # Physical Memory Manager [Impl]
+│   │   ├── vmm.c            # Virtual Memory Manager [Impl]
+│   │   └── heap.c           # Heap del kernel [Impl]
+│   └── include/
+│       └── memory.h
+├── Makefile                  # Sistema de compilación [Impl]
+├── linker.ld                 # Script del linker [Impl]
+├── grub.cfg                  # Configuración de GRUB [Impl]
+└── README.md
+
+Leyenda:
+[Impl] = Implementado y funcional
+[Pend] = Pendiente de implementación
 ```
 
 ## Requisitos de Compilación

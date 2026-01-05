@@ -89,97 +89,130 @@
 2. GRUB (Bootloader)
    │
    ├── Carga neoos en memoria (0x00100000 - 1MB)
-   ├── Carga initimage.img (módulos esenciales)
-   └── Pasa información Multiboot
+   ├── Pasa información Multiboot (magic + multiboot_info)
+   └── Puede pasar parámetros: --debug, --verbose
    │
    ▼
-3. boot.asm (_start)
+3. kmain.S (_start)
    │
-   ├── Configura stack
-   ├── Guarda información Multiboot
+   ├── Configura stack (16KB)
+   ├── Preserva magic number (EAX) y multiboot_info (EBX)
    └── Salta a kernel_main()
    │
    ▼
-4. kernel_main.c
+4. kernel_main() [src/kernel/core/src/kmain.c]
    │
-   ├── Inicializa VGA Terminal
-   ├── Verifica Multiboot Magic
-   ├── Inicializa GDT
-   ├── Inicializa IDT
-   ├── Configura PIC
-   ├── Habilita interrupciones
+   ├── Inicializa VGA Terminal (modo texto 80x25)
+   ├── Parsea cmdline (--debug, --verbose)
+   ├── Inicializa kconfig (configuración global)
+   ├── Verifica Multiboot Magic (0x2BADB002)
+   ├── Muestra banner de bienvenida (si verbose)
+   ├── Muestra información de memoria
    │
    ▼
-5. Inicialización de Subsistemas
+5. Inicialización del Memory Manager [IMPLEMENTADO]
    │
-   ├── Memory Manager
+   ├── PMM (Physical Memory Manager)
    │   ├── Parsea mapa de memoria de Multiboot
-   │   ├── Inicializa PMM (bitmap de páginas físicas)
-   │   ├── Inicializa VMM (paginación)
-   │   └── Configura heap del kernel
+   │   ├── Crea bitmap de páginas físicas
+   │   └── Marca regiones disponibles/ocupadas
    │
-   ├── Process Scheduler
-   │   ├── Crea proceso IDLE (PID 0)
-   │   └── Prepara estructuras de procesos
+   ├── VMM (Virtual Memory Manager)
+   │   ├── Configura directorio de páginas del kernel
+   │   ├── Crea identity mapping (0-128MB)
+   │   └── Habilita paginación (bit PG en CR0)
    │
-   ├── IPC Manager
-   │   └── Inicializa colas de mensajes
-   │
-   └── Module Manager
-       ├── Carga InitImage
-       └── Inicializa módulos esenciales
+   └── Heap del Kernel
+       ├── Inicializa en 0x00400000 (4MB)
+       ├── Tamaño: 4MB
+       └── Proporciona kmalloc/kfree
    │
    ▼
-6. Transición a Modo Usuario
+6. Bucle Infinito (hlt) [ESTADO ACTUAL]
+
+
+=== PENDIENTES DE IMPLEMENTACIÓN ===
+
+7. GDT, IDT, Interrupciones [PENDIENTE]
    │
-   └── Inicia proceso init (PID 1)
-       └── Shell/UI
+   ├── Inicializa GDT (Global Descriptor Table)
+   ├── Inicializa IDT (Interrupt Descriptor Table)
+   ├── Configura PIC (Programmable Interrupt Controller)
+   └── Habilita interrupciones
+
+8. Process Scheduler [PENDIENTE]
+   │
+   ├── Crea proceso IDLE (PID 0)
+   └── Prepara estructuras de procesos
+
+9. IPC Manager [PENDIENTE]
+   │
+   └── Inicializa colas de mensajes
+
+10. Module Manager [PENDIENTE]
+    │
+    └── Sistema de carga dinámica de módulos
+
+11. Sistema de Archivos (NeoFS) [PENDIENTE]
+
+12. Transición a Modo Usuario [PENDIENTE]
+    │
+    └── Inicia proceso init (PID 1)
+        └── Shell/UI
 ```
 
 ## Estructura de Archivos Detallada
 
-### Core Kernel
-- `boot/boot.asm` - Código de arranque en Assembly
-- `core/kernel_main.c` - Punto de entrada principal del kernel
+### Estructura Real del Código
 
-### Headers
-- `include/kernel.h` - Definiciones globales del kernel
-- `include/multiboot.h` - Protocolo Multiboot
-- `include/errors.h` - Códigos de error del sistema
-- `include/process.h` - PCB y estructuras de proceso
-- `include/scheduler.h` - API del planificador
-- `include/memory.h` - API del gestor de memoria
-- `include/ipc.h` - API de comunicación entre procesos
-- `include/module.h` - API del gestor de módulos
-- `include/syscall.h` - Definiciones de syscalls
-- `include/vga.h` - Driver de terminal VGA
+**src/kernel/** - Código del kernel
 
-### Drivers
-- `drivers/vga.c` - Terminal VGA en modo texto (✅ Implementado)
-- `drivers/keyboard.c` - Driver de teclado (⏳ Pendiente)
-- `drivers/timer.c` - Driver de timer PIT (⏳ Pendiente)
+#### Arquitectura (arch/)
+- `arch/x86/boot/kmain.S` - Entry point en Assembly [Implementado]
+- `arch/arm/boot/kmain.S` - Entry point ARM [Pendiente]
 
-### Subsistemas (Pendientes de Implementar)
-- `mm/` - Memory Manager
-  - `pmm.c` - Physical Memory Manager
-  - `vmm.c` - Virtual Memory Manager
-  - `heap.c` - Heap del kernel
-- `scheduler/` - Process Scheduler
-  - `scheduler.c` - Planificador de procesos
-  - `process.c` - Gestión de procesos
-  - `context_switch.asm` - Cambio de contexto
-- `ipc/` - IPC Manager
-  - `ipc.c` - Comunicación entre procesos
-  - `message_queue.c` - Colas de mensajes
-- `modules/` - Module Manager
-  - `module_loader.c` - Cargador de módulos
-- `core/` - Core del Kernel
-  - `gdt.c` - Global Descriptor Table
-  - `idt.c` - Interrupt Descriptor Table
-  - `interrupts.c` - Handlers de interrupciones
-  - `syscall.c` - Handler de syscalls
+#### Core (core/)
+- `core/src/kmain.c` - Función principal del kernel [Implementado]
+- `core/src/kconfig.c` - Configuración global del kernel [Implementado]
+- `core/src/error.c` - Conversión de códigos de error a strings [Implementado]
+- `core/include/kmain.h` - Definiciones del kernel main [Implementado]
+- `core/include/kconfig.h` - Variables de configuración [Implementado]
+- `core/include/error.h` - Códigos de error del sistema [Implementado]
 
-## Syscalls Definidas (29 total)
+#### Drivers (drivers/)
+- `drivers/src/vga.c` - Terminal VGA en modo texto 80x25 [Implementado]
+- `drivers/include/vga.h` - API del driver VGA [Implementado]
+- `drivers/keyboard.c` - Driver de teclado [Pendiente]
+- `drivers/timer.c` - Driver de timer PIT [Pendiente]
+
+#### Librería (lib/)
+- `lib/src/string.c` - Funciones de strings [Implementado]
+- `lib/include/string.h` - API de strings [Implementado]
+- `lib/include/types.h` - Tipos básicos del sistema [Implementado]
+- `lib/include/multiboot.h` - Protocolo Multiboot [Implementado]
+
+#### Memory Manager (memory/) - [IMPLEMENTADO]
+- `memory/src/memory.c` - Coordinador del Memory Manager [Implementado]
+- `memory/src/pmm.c` - Physical Memory Manager [Implementado]
+- `memory/src/vmm.c` - Virtual Memory Manager [Implementado]
+- `memory/src/heap.c` - Heap del kernel [Implementado]
+- `memory/include/memory.h` - API completa del Memory Manager [Implementado]
+
+#### Subsistemas Pendientes
+- `scheduler/` - Process Scheduler [NO EXISTE AÚN]
+- `ipc/` - IPC Manager [NO EXISTE AÚN]
+- `modules/` - Module Manager [NO EXISTE AÚN]
+- `fs/` - Sistema de archivos [NO EXISTE AÚN]
+- `syscalls/` - Syscall handler [NO EXISTE AÚN]
+
+#### Otros
+- `linker.ld` - Linker script [Implementado]
+- `grub.cfg` - Configuración de GRUB [Implementado]
+- `Makefile` - Build system del kernel [Implementado]
+
+## Syscalls Definidas (29 total) - [PENDIENTE DE IMPLEMENTACIÓN]
+
+**NOTA**: Las syscalls están definidas conceptualmente en la documentación, pero **NO están implementadas** en el código actual. El handler de syscalls y el mecanismo de invocación aún no existen.
 
 ### Gestión de Procesos
 - `SYS_EXIT` (0) - Terminar proceso
@@ -224,21 +257,25 @@
 - `SYS_RMDIR` (26) - Eliminar directorio
 - `SYS_CHDIR` (27) - Cambiar directorio
 
-## Códigos de Error
+## Códigos de Error - [IMPLEMENTADOS]
+
+Definidos en `src/kernel/core/include/error.h` e implementados en `src/kernel/core/src/error.c`:
 
 - `E_OK` (0) - Éxito
-- `E_NOMEM` (1) - Sin memoria
-- `E_INVAL` (2) - Argumento inválido
-- `E_PERM` (3) - Sin permisos
-- `E_NOENT` (4) - No existe
-- `E_IO` (5) - Error I/O
-- `E_BUSY` (6) - Recurso ocupado
-- `E_EXISTS` (7) - Ya existe
-- `E_TIMEOUT` (8) - Timeout
-- `E_NOT_IMPL` (9) - No implementado
-- `E_NOT_SUPPORTED` (10) - No soportado
-- `E_MODULE_ERR` (11) - Error de módulo
-- `E_UNKNOWN` (255) - Error desconocido
+- `E_UNKNOWN` (-1) - Error desconocido
+- `E_NOMEM` (-2) - Sin memoria
+- `E_INVAL` (-3) - Argumento inválido
+- `E_NOENT` (-4) - No existe
+- `E_EXISTS` (-5) - Ya existe
+- `E_BUSY` (-6) - Recurso ocupado
+- `E_IO` (-7) - Error I/O
+- `E_PERM` (-8) - Sin permisos
+- `E_TIMEOUT` (-9) - Timeout
+- `E_MODULE_ERR` (-10) - Error de módulo
+- `E_NOT_IMPL` (-11) - No implementado
+- `E_NOT_SUPPORTED` (-12) - No soportado
+
+La función `error_to_string(int error)` convierte códigos de error a sus nombres como strings.
 
 ## Convenciones de Código
 

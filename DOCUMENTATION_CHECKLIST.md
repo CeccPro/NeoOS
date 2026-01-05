@@ -4,7 +4,7 @@ Este documento contiene una checklist de todos los componentes y aspectos del pr
 
 ## Estado de la Documentación
 
-### ✅ Documentación Completada
+### [COMPLETADO] Documentación Completada
 
 - [x] **README.md** - Introducción general al proyecto
 - [x] **DEV.md** - Guía para desarrolladores
