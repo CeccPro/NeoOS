@@ -13,6 +13,13 @@
 #define VGA_HEIGHT 25
 
 // Colores VGA
+/**
+ * NOTA: El color LIGHT_BROWN y YELLOW usan el mismo valor (14)
+ * Se define LIGHT_BROWN para mantener consistencia con otros sistemas
+ * Pero siendo sincero, se ve más como amarillo, así que como fallback
+ * (Ya me equivoqué muchas veces y puse YELLOW en vez de LIGHT_BROWN)
+ * lo definiré también como YELLOW.
+ */
 enum vga_color {
     VGA_COLOR_BLACK = 0,
     VGA_COLOR_BLUE = 1,
@@ -29,6 +36,7 @@ enum vga_color {
     VGA_COLOR_LIGHT_RED = 12,
     VGA_COLOR_LIGHT_MAGENTA = 13,
     VGA_COLOR_LIGHT_BROWN = 14,
+    VGA_COLOR_YELLOW = 14,
     VGA_COLOR_WHITE = 15,
 };
 

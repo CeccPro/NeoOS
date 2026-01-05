@@ -138,6 +138,7 @@
    ├── Inicializa GDT (Global Descriptor Table)
    ├── Inicializa IDT (Interrupt Descriptor Table)
    ├── Configura PIC (Programmable Interrupt Controller)
+   ├── Inicializa timer PIT (Programmable Interval Timer)
    └── Habilita interrupciones
 
 8. Process Scheduler [PENDIENTE]

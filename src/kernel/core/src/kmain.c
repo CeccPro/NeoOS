@@ -5,6 +5,9 @@
 
 #include "../../core/include/kmain.h"
 #include "../../core/include/kconfig.h"
+#include "../../core/include/gdt.h"
+#include "../../core/include/idt.h"
+#include "../../core/include/interrupts.h"
 #include "../../memory/include/memory.h"
 
 // Símbolo proporcionado por el linker script
@@ -22,6 +25,7 @@ void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
     
     bool kdebug = false;
     bool kverbose = false;
+    bool ksubsystems = true;
 
     // Parsear CMDLINE
     if (mbi->flags & MULTIBOOT_INFO_CMDLINE) {
@@ -31,6 +35,12 @@ void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
 
         if (strstr((const char*)mbi->cmdline, "--verbose")) {
             kverbose = true;
+        }
+
+        // Esto no debería usarse en producción, solo para pruebas
+        // (Y también para poder apreciar el Banner xd)
+        if (strstr((const char*)mbi->cmdline, "--no-subsystems")) {
+            ksubsystems = false;
         }
     }
 
@@ -112,7 +122,17 @@ void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
     // Mostrar mensaje de inicialización completada
     if (kverbose) {vga_write("\n");}
     vga_set_color(VGA_COLOR_LIGHT_BROWN, VGA_COLOR_BLACK);
-    vga_write("Inicializacion del kernel completada.\n\n");
+    vga_write("Inicializacion del kernel completada.\n");
+
+    if (!ksubsystems) {
+        vga_set_color(VGA_COLOR_LIGHT_BROWN, VGA_COLOR_BLACK);
+        vga_write("Modo sin subsistemas activado. El kernel se detendra aqui.\n");
+        while (1) {
+            __asm__ volatile("hlt");
+        }
+    }
+
+    vga_write("\n== Iniciando subsistemas del kernel ==\n");
 
     // Inicializar el Memory Manager
     int mm_result = memory_init(mbi, kdebug, kverbose);
@@ -129,11 +149,48 @@ void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
         }
     }
 
+    if (kverbose) {
+        vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
+        vga_write("== Inicializando sistema de interrupciones ==\n");
+    }
+
+    // Inicializar GDT (Global Descriptor Table)
+    if (kverbose) {
+        vga_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
+        vga_write("[GDT] Inicializando GDT...\n");
+    }
+    gdt_init();
+    if (kverbose) {
+        vga_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
+        vga_write("[GDT] GDT inicializada\n");
+    }
+
+    // Inicializar IDT (Interrupt Descriptor Table)
+    if (kverbose) {
+        vga_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
+        vga_write("[IDT] Inicializando IDT...\n");
+    }
+    idt_init();
+    if (kverbose) {
+        vga_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
+        vga_write("[IDT] IDT inicializada\n");
+    }
+
+    // Inicializar el sistema de interrupciones (ISR, IRQ, PIC)
+    interrupts_init(kverbose);
+
+    if (kverbose) {
+        vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
+        vga_write("== Sistema de interrupciones inicializado ==\n\n");
+    }
+
     // TODO: Inicializar subsistemas del kernel:
     // - Planificador de procesos
-    // - Sistema de archivos
     // - IPC
+    // - Sistema de archivos
     // - Module Manager
+
+    vga_write("Subsistemas del kernel iniciados correctamente\n");
 
     // Cargar la partición de NeoOS (Por ahora solo verificar el MAGIC al inicio de la partición [Primeros 512B])
     if (kverbose) {

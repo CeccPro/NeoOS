@@ -90,8 +90,8 @@ static void vmm_invalidate_page(uint32_t virt) {
  */
 int vmm_init(bool kdebug __attribute__((unused)), bool kverbose __attribute__((unused))) {
     if (is_kverbose()) {
-        vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
-        vga_write("\n=== Inicializando Virtual Memory Manager ===\n");
+        vga_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
+        vga_write("Inicializando Virtual Memory Manager ===\n");
     }
 
     // Usar el directorio estático (está en la sección .bss del kernel)

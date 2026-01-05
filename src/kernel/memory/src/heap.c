@@ -219,8 +219,7 @@ int heap_init(uint32_t start, uint32_t size, bool kdebug __attribute__((unused))
     }
     
     if (is_kverbose()) {
-        vga_set_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
-        vga_write("[HEAP] [OK] Heap inicializado\n");
+        vga_write("[HEAP] Heap inicializado\n");
     }
     
     return E_OK;

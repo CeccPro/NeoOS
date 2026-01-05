@@ -27,15 +27,19 @@ BOOT_DIR = $(ISO_DIR)/boot
 GRUB_DIR = $(BOOT_DIR)/grub
 
 # Flags de compilación
-CFLAGS = -std=gnu99 -ffreestanding -O2 -Wall -Wextra -Ilib/include -Idrivers/include -Imemory/include -fno-pie -fno-stack-protector
+CFLAGS = -std=gnu99 -ffreestanding -O2 -Wall -Wextra -Ilib/include -Idrivers/include -Imemory/include -Icore/include -fno-pie -fno-stack-protector
 LDFLAGS = -ffreestanding -O2 -nostdlib -lgcc -no-pie -z noexecstack
 ASFLAGS = --noexecstack
 
 # Archivos fuente
-ASM_SOURCES = $(ARCH_DIR)/boot/kmain.S
+ASM_SOURCES = $(ARCH_DIR)/boot/kmain.S \
+              $(ARCH_DIR)/isr.S
 C_SOURCES = core/src/kmain.c \
 			core/src/error.c \
 			core/src/kconfig.c \
+			core/src/gdt.c \
+			core/src/idt.c \
+			core/src/interrupts.c \
             memory/src/memory.c \
             memory/src/pmm.c \
             memory/src/vmm.c \
