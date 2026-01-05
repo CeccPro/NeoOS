@@ -51,6 +51,13 @@ typedef struct multiboot_mmap_entry {
     uint32_t type;
 } __attribute__((packed)) multiboot_mmap_entry_t;
 
+// Tipos de memoria en el mapa de memoria
+#define MULTIBOOT_MEMORY_AVAILABLE          1
+#define MULTIBOOT_MEMORY_RESERVED           2
+#define MULTIBOOT_MEMORY_ACPI_RECLAIMABLE   3
+#define MULTIBOOT_MEMORY_NVS                4
+#define MULTIBOOT_MEMORY_BADRAM             5
+
 // Flags de multiboot_info
 #define MULTIBOOT_INFO_MEMORY          0x00000001
 #define MULTIBOOT_INFO_BOOTDEV         0x00000002

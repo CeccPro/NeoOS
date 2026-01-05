@@ -41,6 +41,7 @@ La estructura de carpetas del proyecto NeoOS es la siguiente:
 │   │   ├── modules/        # Módulo gestor de módulos y módulos básicos
 │   │   ├── core/           # Funciones centrales del núcleo (Entry point y cosas muy low-level)
 │   │   ├── syscalls/       # Implementación de llamadas al sistema
+│   │   ├── lib/         # Implementación de librerías estándar del sistema
 │   │   └── utils/          # Utilidades y funciones auxiliares del núcleo
 │   ├── ui/                 # Código de la interfaz de usuario basada en WebView
 │   └── modules/            # Módulos adicionales del sistema operativo

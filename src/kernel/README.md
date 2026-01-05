@@ -46,14 +46,14 @@ Necesitas un cross-compiler para i686-elf. Puedes:
 Desde el directorio raíz del proyecto:
 ```bash
 make all        # Compila el kernel
-make iso        # Crea una imagen ISO booteable
+make img        # Crea una imagen ISO booteable
 make run        # Compila y ejecuta en QEMU
 ```
 
 Desde este directorio (src/kernel):
 ```bash
 make            # Compila el kernel
-make iso        # Crea ISO
+make img        # Crea ISO
 make run        # Ejecuta en QEMU
 make clean      # Limpia archivos compilados
 ```
@@ -71,11 +71,6 @@ Para ejecutar NeoOS en QEMU:
 make run
 ```
 
-Para ejecutar con salida de terminal serie:
-```bash
-make run-terminal
-```
-
 Para ejecutar con GDB para debugging:
 ```bash
 make debug
@@ -90,6 +85,8 @@ NeoCore es un semi-microkernel que incluye:
 - **Syscalls**: Interfaz de llamadas al sistema
 - **Interrupts**: Manejo de interrupciones
 - **Module Manager**: Gestor de módulos dinámicos
+- **Basic Drivers**: Controladores básicos (ej. VGA)
+- **Soporte para NeoFS**: Sistema de archivos nativo
 
 Los demás servicios se implementan como módulos separados.
 

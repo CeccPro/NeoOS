@@ -4,6 +4,12 @@
  */
 
 #include "../../core/include/kmain.h"
+#include "../../core/include/kconfig.h"
+#include "../../memory/include/memory.h"
+
+// Símbolo proporcionado por el linker script
+extern uint32_t __kernel_end;
+uint32_t kernel_end = (uint32_t)&__kernel_end;
 
 /**
  * Kernel Main - Entry point del kernel en C
@@ -27,6 +33,9 @@ void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
             kverbose = true;
         }
     }
+
+    // Inicializar configuración global del kernel
+    kconfig_init(kdebug, kverbose);
 
     // Verificar si el bootloader es compatible con Multiboot
     if (magic != MULTIBOOT_MAGIC) {
@@ -103,10 +112,24 @@ void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
     // Mostrar mensaje de inicialización completada
     if (kverbose) {vga_write("\n");}
     vga_set_color(VGA_COLOR_LIGHT_BROWN, VGA_COLOR_BLACK);
-    vga_write("Inicializacion del kernel completada.\n");
+    vga_write("Inicializacion del kernel completada.\n\n");
+
+    // Inicializar el Memory Manager
+    int mm_result = memory_init(mbi, kdebug, kverbose);
+    if (mm_result != E_OK) {
+        vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
+        vga_write("[FAIL] Error al inicializar el Memory Manager\n");
+        vga_write("Codigo de error: ");
+        vga_write(error_to_string(mm_result));
+        vga_write("\n");
+        
+        // Detener el kernel
+        while(1) {
+            __asm__ volatile("hlt");
+        }
+    }
 
     // TODO: Inicializar subsistemas del kernel:
-    // - Gestor de memoria
     // - Planificador de procesos
     // - Sistema de archivos
     // - IPC
