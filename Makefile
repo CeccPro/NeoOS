@@ -1,5 +1,5 @@
 # Makefile principal de NeoOS
-.PHONY: all kernel img run clean commit help comp
+.PHONY: all kernel img run clean commit help comp clean-all
 
 all: kernel
 
@@ -19,6 +19,11 @@ clean:
 	@echo "Limpiando archivos de compilación..."
 	@cd src/kernel && $(MAKE) clean
 	@echo "Limpieza completada."
+
+clean-all:
+	@echo "Eliminando todos los archivos de compilación e imagen de disco..."
+	@cd src/kernel && $(MAKE) clean-all
+	@echo "Eliminación completada."
 
 help:
 	@echo "NeoOS - Sistema Operativo"

@@ -240,8 +240,24 @@ void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
     // Crear procesos de prueba (Quitar después)
     vga_set_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
     vga_write("\nCreando procesos de prueba...\n");
-    scheduler_create_process("test01", test_process01, PROCESS_PRIORITY_NORMAL);
-    scheduler_create_process("test02", test_process02, PROCESS_PRIORITY_NORMAL);
+    
+    uint32_t pid1 = scheduler_create_process("test01", test_process01, PROCESS_PRIORITY_NORMAL);
+    vga_write("test01 retorno PID: ");
+    vga_write_dec(pid1);
+    vga_write(" (hex: ");
+    vga_write_hex(pid1);
+    vga_write(")\n");
+    
+    uint32_t pid2 = scheduler_create_process("test02", test_process02, PROCESS_PRIORITY_NORMAL);
+    vga_write("test02 retorno PID: ");
+    vga_write_dec(pid2);
+    vga_write(" (hex: ");
+    vga_write_hex(pid2);
+    vga_write(")\n");
+    
+    vga_write("Total procesos: ");
+    vga_write_dec(scheduler_get_process_count());
+    vga_write("\n");
 
     // TODO: Inicializar subsistemas adicionales del kernel:
     // - IPC

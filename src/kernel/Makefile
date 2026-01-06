@@ -1,7 +1,7 @@
 # NeoOS Kernel Makefile
 # Compilación del kernel para arquitectura x86
 
-.PHONY: all img run clean info check debug
+.PHONY: all img run clean info check debug clean-all
 
 # Herramientas de compilación
 # Intentar usar cross-compiler, si no está disponible usar el del sistema
@@ -100,8 +100,13 @@ debug:
 # Limpiar archivos de compilación
 clean:
 	@echo "Limpiando archivos de compilación..."
-	@rm -rf $(BUILD_DIR)/*
+	@find $(BUILD_DIR) -mindepth 1 ! -name '*.img' -delete
 	@echo "Limpieza completada."
+
+clean-all:
+	@echo "Limpiando todos los archivos de compilación e imagenes..."
+	@rm -rf $(BUILD_DIR)
+	@echo "Limpieza completa."
 
 # Información de compilación
 info:
