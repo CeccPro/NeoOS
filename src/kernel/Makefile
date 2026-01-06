@@ -33,13 +33,16 @@ ASFLAGS = --noexecstack
 
 # Archivos fuente
 ASM_SOURCES = $(ARCH_DIR)/boot/kmain.S \
-              $(ARCH_DIR)/isr.S
+              $(ARCH_DIR)/isr.S \
+              $(ARCH_DIR)/context_switch.S
 C_SOURCES = core/src/kmain.c \
 			core/src/error.c \
 			core/src/kconfig.c \
 			core/src/gdt.c \
 			core/src/idt.c \
 			core/src/interrupts.c \
+			core/src/timer.c \
+			core/src/scheduler.c \
             memory/src/memory.c \
             memory/src/pmm.c \
             memory/src/vmm.c \

@@ -8,7 +8,38 @@
 #include "../../core/include/gdt.h"
 #include "../../core/include/idt.h"
 #include "../../core/include/interrupts.h"
+#include "../../core/include/timer.h"
+#include "../../core/include/scheduler.h"
 #include "../../memory/include/memory.h"
+
+
+// Test (Quitar después)
+void test_process01(void) {
+    for (int i = 0; i < 10; i++) {
+        vga_write("[TEST01] Running iteration ");
+        vga_write_dec(i);
+        vga_write("\n");
+        timer_wait_ms(100);
+    }
+}
+
+void test_process02(void) {
+    for (int i = 0; i < 10; i++) {
+        vga_write("[TEST02] Running iteration ");
+        vga_write_dec(i);
+        vga_write("\n");
+        timer_wait_ms(100);
+    }
+}
+
+void test_process03(void) {
+    for (int i = 0; i < 10; i++) {
+        vga_write("[TEST03] Running iteration ");
+        vga_write_dec(i);
+        vga_write("\n");
+        timer_wait_ms(100);
+    }
+}
 
 // Símbolo proporcionado por el linker script
 extern uint32_t __kernel_end;
@@ -184,8 +215,36 @@ void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
         vga_write("== Sistema de interrupciones inicializado ==\n\n");
     }
 
-    // TODO: Inicializar subsistemas del kernel:
-    // - Planificador de procesos
+    // Inicializar el PIT (Programmable Interval Timer)
+    if (kverbose) {
+        vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
+        vga_write("== Inicializando PIT (Timer) ==\n");
+    }
+    timer_init(TIMER_DEFAULT_FREQUENCY, kverbose);
+    if (kverbose) {
+        vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
+        vga_write("== PIT inicializado ==\n\n");
+    }
+
+    // Inicializar el Scheduler
+    if (kverbose) {
+        vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
+        vga_write("== Inicializando Scheduler ==\n");
+    }
+    scheduler_init(kverbose);
+    if (kverbose) {
+        vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
+        vga_write("== Scheduler inicializado ==\n");
+    }
+
+    // Crear procesos de prueba (Quitar después)
+    vga_set_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
+    vga_write("\nCreando procesos de prueba...\n");
+    scheduler_create_process("test01", test_process01, PROCESS_PRIORITY_NORMAL);
+    scheduler_create_process("test02", test_process02, PROCESS_PRIORITY_NORMAL);
+    scheduler_create_process("test03", test_process03, PROCESS_PRIORITY_NORMAL);
+
+    // TODO: Inicializar subsistemas adicionales del kernel:
     // - IPC
     // - Sistema de archivos
     // - Module Manager
