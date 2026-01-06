@@ -1,3 +1,5 @@
+Mira wn:
+
 #!/bin/bash
 # Script para crear imagen de disco con particiones para NeoOS
 # Partición 1: EXT4 (boot) con GRUB y kernel
@@ -30,6 +32,36 @@ echo -e "${GREEN}=== Creando imagen de disco para NeoOS ===${NC}"
 if [ ! -f "$KERNEL_ELF" ]; then
     echo -e "${RED}Error: No se encontró el kernel en $KERNEL_ELF${NC}"
     exit 1
+fi
+
+# Si la imagen ya existe, solo actualizar el kernel
+if [ -f "$IMG_FILE" ]; then
+    echo -e "${YELLOW}Imagen existente detectada. Actualizando solo el kernel...${NC}"
+    
+    # Configurar dispositivo loop
+    LOOP_DEV=$(sudo losetup -f --show -P "$IMG_FILE")
+    sleep 1
+    
+    # Montar partición de boot
+    sudo mkdir -p "$MOUNT_POINT"
+    sudo mount "${LOOP_DEV}p1" "$MOUNT_POINT" 2>/dev/null
+    
+    if [ $? -eq 0 ]; then
+        # Reemplazar kernel
+        sudo cp "$KERNEL_ELF" "$MOUNT_POINT/boot/neoos"
+        echo -e "${GREEN}✓ Kernel actualizado: $(ls -lh "$KERNEL_ELF" | awk '{print $5}')${NC}"
+        
+        # Desmontar
+        sudo umount "$MOUNT_POINT"
+        sudo rmdir "$MOUNT_POINT" 2>/dev/null || true
+        sudo losetup -d "$LOOP_DEV"
+        
+        echo -e "${GREEN}✓ Actualización completada${NC}"
+        exit 0
+    else
+        echo -e "${YELLOW}No se pudo montar la imagen existente. Recreando...${NC}"
+        sudo losetup -d "$LOOP_DEV"
+    fi
 fi
 
 echo -e "${YELLOW}[1/8]${NC} Creando imagen de disco de ${TOTAL_SIZE}MB..."
