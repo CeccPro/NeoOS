@@ -42,6 +42,22 @@ typedef enum {
 #define KERNEL_STACK_SIZE 4096
 
 /**
+ * Quantum del scheduler por nivel de prioridad (en ticks del timer)
+ * Con 100 Hz: cada tick = 10ms
+ * 
+ * REALTIME: 10 ticks = 100ms (máximo tiempo de CPU)
+ * HIGH:     7 ticks = 70ms
+ * NORMAL:   5 ticks = 50ms (estándar)
+ * LOW:      3 ticks = 30ms
+ * IDLE:     1 tick  = 10ms (mínimo)
+ */
+#define QUANTUM_REALTIME  10
+#define QUANTUM_HIGH      7
+#define QUANTUM_NORMAL    5
+#define QUANTUM_LOW       3
+#define QUANTUM_IDLE      1
+
+/**
  * Process Control Block (PCB)
  * Estructura que contiene toda la información de un proceso
  */

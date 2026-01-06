@@ -30,6 +30,18 @@ static uint32_t total_processes = 0;
 // Flag para indicar si el scheduler está inicializado
 static bool scheduler_initialized = false;
 
+// Contadores para weighted round-robin por prioridad
+// Cada prioridad tiene un "peso" que determina cuántas veces se selecciona
+static uint32_t priority_counters[5] = {0, 0, 0, 0, 0};
+
+// Pesos por prioridad (cuántas veces seleccionar antes de pasar a la siguiente)
+// REALTIME: 8 de cada 15 selecciones
+// HIGH:     4 de cada 15 selecciones  
+// NORMAL:   2 de cada 15 selecciones
+// LOW:      1 de cada 15 selecciones
+// IDLE:     solo cuando no hay nadie más
+static const uint32_t priority_weights[5] = {0, 1, 2, 4, 8}; // IDLE, LOW, NORMAL, HIGH, REALTIME
+
 /**
  * Buscar un PID libre en la tabla de procesos
  * Implementa wrap-around para reutilizar PIDs
@@ -53,6 +65,22 @@ static uint32_t find_free_pid(void) {
     
     // No hay PIDs disponibles
     return 0;
+}
+
+/**
+ * Obtener el quantum (time slice) para una prioridad específica
+ * @param priority: Nivel de prioridad del proceso
+ * @return Número de ticks para el quantum
+ */
+static uint32_t get_quantum_for_priority(process_priority_t priority) {
+    switch (priority) {
+        case PROCESS_PRIORITY_REALTIME: return QUANTUM_REALTIME;
+        case PROCESS_PRIORITY_HIGH:     return QUANTUM_HIGH;
+        case PROCESS_PRIORITY_NORMAL:   return QUANTUM_NORMAL;
+        case PROCESS_PRIORITY_LOW:      return QUANTUM_LOW;
+        case PROCESS_PRIORITY_IDLE:     return QUANTUM_IDLE;
+        default:                        return QUANTUM_NORMAL;
+    }
 }
 
 /**
@@ -189,7 +217,7 @@ void scheduler_init(bool verbose) {
     idle_process->state = PROCESS_STATE_READY;
     idle_process->priority = PROCESS_PRIORITY_IDLE;
     idle_process->time_slices = 0;
-    idle_process->ticks_remaining = TIMER_QUANTUM;
+    idle_process->ticks_remaining = get_quantum_for_priority(PROCESS_PRIORITY_IDLE);
     idle_process->next = NULL;
     idle_process->prev = NULL;
     
@@ -274,7 +302,7 @@ uint32_t scheduler_create_process(const char* name, void (*entry_point)(void), p
     process->state = PROCESS_STATE_READY;
     process->priority = priority;
     process->time_slices = 0;
-    process->ticks_remaining = TIMER_QUANTUM;
+    process->ticks_remaining = get_quantum_for_priority(priority);
     process->next = NULL;
     process->prev = NULL;
     
@@ -394,35 +422,72 @@ int scheduler_terminate_process(uint32_t pid) {
 }
 
 /**
- * Seleccionar el siguiente proceso a ejecutar (Round Robin con prioridades)
+ * Seleccionar el siguiente proceso a ejecutar (Weighted Round Robin)
  * 
- * STARVATION WARNING:
- * Este algoritmo puede hambrentar procesos de baja prioridad si hay
- * muchos procesos de alta prioridad.
+ * ALGORITMO MEJORADO:
+ * Usa un sistema de pesos para dar más tiempo de CPU a procesos de mayor prioridad
+ * sin causar starvation de los de baja prioridad.
  * 
- * Comportamiento actual:
- * - REALTIME puede monopolizar CPU indefinidamente
- * - IDLE solo corre si no hay nadie más
+ * Distribución aproximada de CPU:
+ * - REALTIME: ~53% del tiempo de CPU (8/15)
+ * - HIGH:     ~27% del tiempo de CPU (4/15)
+ * - NORMAL:   ~13% del tiempo de CPU (2/15)
+ * - LOW:      ~7%  del tiempo de CPU (1/15)
+ * - IDLE:     Solo cuando no hay nadie más
  * 
- * TODO (futuro):
- * - Implementar priority aging (boost automático)
- * - Límites de time_slices por nivel de prioridad
- * - Feedback scheduling para procesos interactivos
- * 
- * Para early kernel: este diseño es aceptable y predecible.
+ * Cada prioridad también tiene un quantum diferente:
+ * - Mayor prioridad = quantum más largo por selección
+ * - Menor prioridad = quantum más corto por selección
  */
 process_t* scheduler_select_next(void) {
-    // Buscar en las colas de mayor a menor prioridad
-    // DESIGN CHOICE: Strict priority (puede causar starvation)
-    for (int priority = PROCESS_PRIORITY_REALTIME; priority >= PROCESS_PRIORITY_IDLE; priority--) {
+    // Intentar seleccionar procesos por peso de prioridad
+    // Empezamos desde REALTIME y bajamos, pero respetando los pesos
+    
+    // Ciclar por las prioridades de mayor a menor
+    for (int priority = PROCESS_PRIORITY_REALTIME; priority >= PROCESS_PRIORITY_LOW; priority--) {
         if (ready_queues[priority].count > 0) {
-            // Obtener el primer proceso de esta cola de prioridad
+            // Verificar si esta prioridad puede ser seleccionada según su peso
+            uint32_t weight = priority_weights[priority];
+            
+            // Si el contador es menor que el peso, seleccionar de esta cola
+            if (priority_counters[priority] < weight) {
+                priority_counters[priority]++;
+                process_t* next = scheduler_queue_pop(&ready_queues[priority]);
+                
+                // Reset de contadores si alcanzamos el ciclo completo
+                uint32_t total = 0;
+                for (int i = PROCESS_PRIORITY_LOW; i <= PROCESS_PRIORITY_REALTIME; i++) {
+                    total += priority_counters[i];
+                }
+                if (total >= 15) { // 1+2+4+8 = 15 (ciclo completo)
+                    for (int i = 0; i < 5; i++) {
+                        priority_counters[i] = 0;
+                    }
+                }
+                
+                return next;
+            }
+        }
+    }
+    
+    // Si ningún peso permite selección, hacer round-robin simple
+    // (fallback en caso de que todos los contadores estén saturados)
+    for (int priority = PROCESS_PRIORITY_REALTIME; priority >= PROCESS_PRIORITY_LOW; priority--) {
+        if (ready_queues[priority].count > 0) {
+            // Reset contadores y seleccionar
+            for (int i = 0; i < 5; i++) {
+                priority_counters[i] = 0;
+            }
             process_t* next = scheduler_queue_pop(&ready_queues[priority]);
             return next;
         }
     }
     
-    // No hay procesos listos, retornar el idle
+    // No hay procesos ready (excepto idle), retornar idle
+    if (ready_queues[PROCESS_PRIORITY_IDLE].count > 0) {
+        return scheduler_queue_pop(&ready_queues[PROCESS_PRIORITY_IDLE]);
+    }
+    
     return idle_process;
 }
 
@@ -470,7 +535,7 @@ void scheduler_switch(void) {
     
     // Cambiar al nuevo proceso
     next_process->state = PROCESS_STATE_RUNNING;
-    next_process->ticks_remaining = TIMER_QUANTUM;
+    next_process->ticks_remaining = get_quantum_for_priority(next_process->priority);
     next_process->time_slices++;
     
     current_process = next_process;

@@ -242,7 +242,6 @@ void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
     vga_write("\nCreando procesos de prueba...\n");
     scheduler_create_process("test01", test_process01, PROCESS_PRIORITY_NORMAL);
     scheduler_create_process("test02", test_process02, PROCESS_PRIORITY_NORMAL);
-    scheduler_create_process("test03", test_process03, PROCESS_PRIORITY_NORMAL);
 
     // TODO: Inicializar subsistemas adicionales del kernel:
     // - IPC
