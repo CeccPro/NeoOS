@@ -6,6 +6,7 @@
 #include "../../core/include/scheduler.h"
 #include "../../core/include/timer.h"
 #include "../../core/include/error.h"
+#include "../../core/include/ipc.h"
 #include "../../drivers/include/vga.h"
 #include "../../lib/include/string.h"
 #include "../../memory/include/memory.h"
@@ -409,6 +410,11 @@ uint32_t scheduler_create_process(const char* name, void (*entry_point)(void), p
     process->eflags = 0x202;
     process->page_directory = 0;
 
+    // Inicializar cola IPC
+    process->ipc_queue.head = NULL;
+    process->ipc_queue.tail = NULL;
+    process->ipc_queue.count = 0;
+
     // Última verificación antes de tocar tablas globales
     if (process->pid == 0 || process->pid >= MAX_PROCESSES) {
         // Desactivar interrupciones
@@ -499,6 +505,10 @@ int scheduler_terminate_process(uint32_t pid) {
     
     // Liberar memoria (solo si NO era current_process, o si lo era, esto
     // se ejecuta en el nuevo contexto)
+    
+    // Limpiar cola IPC antes de liberar memoria
+    ipc_cleanup_queue(&process->ipc_queue);
+    
     if (process->kernel_stack != 0) {
         kfree((void*)process->kernel_stack);
     }
@@ -752,6 +762,46 @@ void scheduler_block_current(void) {
     // scheduler_switch verá que state != RUNNING y no lo reencolará
     // Las interrupciones se rehabilitan en scheduler_switch
     scheduler_switch();
+}
+
+/**
+ * Bloquear un proceso específico por PID
+ */
+int scheduler_block_process(uint32_t pid) {
+    if (pid >= MAX_PROCESSES) {
+        return E_INVAL; // PID inválido
+    }
+    
+    process_t* process = process_table[pid];
+    if (process == NULL) {
+        return E_NOENT;
+    }
+    
+    // Si es el proceso actual, usar scheduler_block_current
+    if (process == current_process) {
+        scheduler_block_current();
+        return E_OK;
+    }
+    
+    // Deshabilitar interrupciones durante operaciones de cola
+    __asm__ volatile("cli");
+    
+    if (process->state != PROCESS_STATE_READY && process->state != PROCESS_STATE_RUNNING) {
+        __asm__ volatile("sti");
+        return E_INVAL; // El proceso no está en un estado bloqueab1e
+    }
+    
+    // Remover de la cola de listos si está ahí
+    if (process->state == PROCESS_STATE_READY) {
+        scheduler_queue_remove(&ready_queues[process->priority], process);
+    }
+    
+    // Cambiar estado y agregar a cola de bloqueados
+    process->state = PROCESS_STATE_BLOCKED;
+    scheduler_queue_add(&blocked_queue, process);
+    
+    __asm__ volatile("sti");
+    return E_OK;
 }
 
 /**

@@ -28,6 +28,10 @@ typedef int bool;
 #define true  1
 #define false 0
 
+// Tipos del sistema operativo
+typedef uint32_t pid_t;   // Process ID
+typedef uint32_t mid_t;   // Module ID
+
 // Macros útiles
 #define NULL ((void*)0)
 

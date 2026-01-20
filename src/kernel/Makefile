@@ -43,6 +43,7 @@ C_SOURCES = core/src/kmain.c \
 			core/src/interrupts.c \
 			core/src/timer.c \
 			core/src/scheduler.c \
+			core/src/ipc.c \
             memory/src/memory.c \
             memory/src/pmm.c \
             memory/src/vmm.c \

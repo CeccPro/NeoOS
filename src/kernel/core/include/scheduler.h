@@ -9,6 +9,9 @@
 #include "../../lib/include/types.h"
 #include "interrupts.h"
 
+// Forward declaration para evitar dependencia circular
+struct ipc_queue;
+
 /**
  * Estados de un proceso
  */
@@ -84,6 +87,13 @@ typedef struct process {
     uint32_t time_slices;            // Número de time slices usados
     uint32_t ticks_remaining;        // Ticks restantes en el quantum actual
     
+    // IPC - Cola de mensajes
+    struct ipc_queue {
+        struct ipc_queue_message* head;
+        struct ipc_queue_message* tail;
+        uint32_t count;
+    } ipc_queue;
+    
     // Enlaces para la lista de procesos
     struct process* next;            // Siguiente proceso en la cola
     struct process* prev;            // Proceso anterior en la cola
@@ -155,6 +165,16 @@ process_t* scheduler_get_current_process(void);
  * @return Puntero al PCB del proceso, o NULL si no existe
  */
 process_t* scheduler_get_process_by_pid(uint32_t pid);
+
+// Alias para compatibilidad con IPC
+#define scheduler_get_process scheduler_get_process_by_pid
+
+/**
+ * Bloquear un proceso específico por PID
+ * @param pid: Process ID del proceso a bloquear
+ * @return 0 si tuvo éxito, código de error en caso contrario
+ */
+int scheduler_block_process(uint32_t pid);
 
 /**
  * Yield: Ceder voluntariamente la CPU

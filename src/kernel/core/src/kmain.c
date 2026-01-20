@@ -10,30 +10,128 @@
 #include "../../core/include/interrupts.h"
 #include "../../core/include/timer.h"
 #include "../../core/include/scheduler.h"
+#include "../../core/include/ipc.h"
 #include "../../memory/include/memory.h"
 
+// PIDs globales para el juego de Marco-Polo
+static pid_t marco_pid = 0;
+static pid_t polo_pid = 0;
 
-// Test (Quitar después)
-void test_process01(void) {
-    for (int i = 0; i < 10; i++) {
-        vga_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
-        vga_write("[TEST01] Running iteration ");
+/**
+ * Proceso Marco - Inicia el juego enviando "Marco"
+ * Espera recibir "Polo" y repite el ciclo
+ */
+void marco_process(void) {
+    // Esperar a que el proceso Polo esté listo
+    timer_wait_ms(100);
+    
+    vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
+    vga_write("[MARCO] Proceso iniciado. Mi PID: ");
+    vga_write_dec(scheduler_get_current_process()->pid);
+    vga_write("\n");
+    
+    for (int i = 0; i < 5; i++) {
+        // Enviar "Marco" al proceso Polo
+        const char* msg = "Marco";
         vga_set_color(VGA_COLOR_YELLOW, VGA_COLOR_BLACK);
-        vga_write_dec(i);
-        vga_write("\n");
-        timer_wait_ms(100);
+        vga_write("[MARCO] Enviando: ");
+        vga_write(msg);
+        vga_write(" -> Polo (PID ");
+        vga_write_dec(polo_pid);
+        vga_write(")\n");
+        
+        int result = ipc_send(polo_pid, msg, 6);  // 6 = strlen("Marco") + 1
+        if (result != E_OK) {
+            vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
+            vga_write("[MARCO] Error al enviar mensaje: ");
+            vga_write(error_to_string(result));
+            vga_write("\n");
+            break;
+        }
+        
+        // Esperar respuesta "Polo"
+        vga_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
+        vga_write("[MARCO] Esperando respuesta...\n");
+        
+        ipc_message_t response;
+        result = ipc_recv(&response, IPC_BLOCK);
+        if (result == E_OK) {
+            vga_set_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
+            vga_write("[MARCO] Recibido de PID ");
+            vga_write_dec(response.sender_pid);
+            vga_write(": ");
+            vga_write((char*)response.buffer);
+            vga_write("\n");
+            
+            // Liberar el mensaje
+            ipc_free(&response);
+        } else {
+            vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
+            vga_write("[MARCO] Error al recibir: ");
+            vga_write(error_to_string(result));
+            vga_write("\n");
+        }
+        
+        // Pequeña pausa antes del próximo round
+        timer_wait_ms(500);
     }
+    
+    vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
+    vga_write("[MARCO] Juego terminado!\n");
 }
 
-void test_process02(void) {
-    for (int i = 0; i < 10; i++) {
-        vga_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
-        vga_write("[TEST02] Running iteration ");
-        vga_set_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
-        vga_write_dec(i);
-        vga_write("\n");
-        timer_wait_ms(100);
+/**
+ * Proceso Polo - Espera recibir "Marco" y responde con "Polo"
+ */
+void polo_process(void) {
+    vga_set_color(VGA_COLOR_LIGHT_MAGENTA, VGA_COLOR_BLACK);
+    vga_write("[POLO] Proceso iniciado. Mi PID: ");
+    vga_write_dec(scheduler_get_current_process()->pid);
+    vga_write("\n");
+    vga_write("[POLO] Esperando mensajes...\n");
+    
+    for (int i = 0; i < 5; i++) {
+        // Esperar mensaje "Marco"
+        ipc_message_t msg;
+        int result = ipc_recv(&msg, IPC_BLOCK);
+        
+        if (result == E_OK) {
+            vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
+            vga_write("[POLO] Recibido de PID ");
+            vga_write_dec(msg.sender_pid);
+            vga_write(": ");
+            vga_write((char*)msg.buffer);
+            vga_write("\n");
+            
+            // Responder con "Polo"
+            const char* response = "Polo";
+            vga_set_color(VGA_COLOR_LIGHT_MAGENTA, VGA_COLOR_BLACK);
+            vga_write("[POLO] Respondiendo: ");
+            vga_write(response);
+            vga_write(" -> Marco (PID ");
+            vga_write_dec(msg.sender_pid);
+            vga_write(")\n");
+            
+            int send_result = ipc_send(msg.sender_pid, response, 5);  // 5 = strlen("Polo") + 1
+            if (send_result != E_OK) {
+                vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
+                vga_write("[POLO] Error al enviar respuesta: ");
+                vga_write(error_to_string(send_result));
+                vga_write("\n");
+            }
+            
+            // Liberar el mensaje recibido
+            ipc_free(&msg);
+        } else {
+            vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
+            vga_write("[POLO] Error al recibir: ");
+            vga_write(error_to_string(result));
+            vga_write("\n");
+        }
     }
+    
+    vga_set_color(VGA_COLOR_LIGHT_MAGENTA, VGA_COLOR_BLACK);
+    vga_write("[POLO] Juego terminado!\n");
 }
 
 // Símbolo proporcionado por el linker script
@@ -230,24 +328,49 @@ void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
     scheduler_init(kverbose);
     if (kverbose) {
         vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
-        vga_write("== Scheduler inicializado ==\n");
+        vga_write("== Scheduler inicializado ==\n\n");
+    }
+
+    // Inicializar IPC
+    if (kverbose) {
+        vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
+        vga_write("== Inicializando IPC ==\n");
+    }
+    int ipc_result = ipc_init();
+    if (ipc_result != E_OK) {
+        vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
+        vga_write("[FAIL] Error al inicializar IPC\n");
+        while(1) {
+            __asm__ volatile("hlt");
+        }
+    }
+    if (kverbose) {
+        vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
+        vga_write("== IPC inicializado ==\n");
     }
 
     vga_write("\n");
-    // Crear procesos de prueba (Quitar después)
-    uint32_t pid1 = scheduler_create_process("test01", test_process01, PROCESS_PRIORITY_NORMAL);
-    vga_write("[KMAIN] PID retornado para test01: ");
-    vga_write_dec(pid1);
+    
+    // === Demo IPC: Juego de Marco-Polo ===
+    vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
+    vga_write("== Creando procesos para demo IPC (Marco-Polo) ==\n");
+    
+    // Crear proceso Polo primero
+    polo_pid = scheduler_create_process("Polo", polo_process, PROCESS_PRIORITY_NORMAL);
+    vga_write("[KMAIN] Proceso Polo creado con PID: ");
+    vga_write_dec(polo_pid);
     vga_write("\n");
     
-    uint32_t pid2 = scheduler_create_process("test02", test_process02, PROCESS_PRIORITY_NORMAL);
-    vga_write("[KMAIN] PID retornado para test02: ");
-    vga_write_dec(pid2);
+    // Crear proceso Marco
+    marco_pid = scheduler_create_process("Marco", marco_process, PROCESS_PRIORITY_NORMAL);
+    vga_write("[KMAIN] Proceso Marco creado con PID: ");
+    vga_write_dec(marco_pid);
     vga_write("\n");
-
+    
+    vga_set_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
+    vga_write("Iniciando juego de Marco-Polo usando IPC...\n\n");
 
     // TODO: Inicializar subsistemas adicionales del kernel:
-    // - IPC
     // - Sistema de archivos
     // - Module Manager
 
@@ -255,20 +378,10 @@ void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
 
     // Cargar la partición de NeoOS
     if (kverbose) {
-        vga_set_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
-        vga_write("Cargando particion de NeoOS...\n");
+        // vga_set_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
+        // vga_write("Cargando particion de NeoOS...\n");
         // TODO: Implementar carga de partición NeoOS
     }
-    
-    /*
-    // DESHABILITADO TEMPORALMENTE PARA DEBUG
-    vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
-    vga_write("\n[DEBUG] Context switch DESHABILITADO - Deteniendo kernel\n");
-    vga_write("Presiona una tecla o reinicia para continuar...\n");
-    while (1) {
-        __asm__ volatile("hlt");
-    }
-    */
 
     // Transferir el control al scheduler (nunca retorna)
     scheduler_switch();
