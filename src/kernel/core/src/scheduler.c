@@ -319,10 +319,6 @@ uint32_t scheduler_create_process(const char* name, void (*entry_point)(void), p
 
     __asm__ volatile("cli");
 
-    vga_write("[SCHED] [DEBUG] Creando proceso '");
-    vga_write(name);
-    vga_write("'...\n");
-
     process_t* process = (process_t*)kmalloc(sizeof(process_t));
     if (!process) {
         vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
@@ -330,10 +326,6 @@ uint32_t scheduler_create_process(const char* name, void (*entry_point)(void), p
         __asm__ volatile("sti");
         return 0;
     }
-
-    vga_write("[SCHED] [DEBUG] PCB asignado en: ");
-    vga_write_hex((uint32_t)process);
-    vga_write("\n");
 
     // Validar que la dirección retornada esté alineada
     if (((uintptr_t)process & 0xF) != 0) {
@@ -354,10 +346,6 @@ uint32_t scheduler_create_process(const char* name, void (*entry_point)(void), p
     vga_write("\n");
 
     uint32_t new_pid = find_free_pid();
-
-    vga_write("[SCHED] [DEBUG] PID asignado: ");
-    vga_write_dec(new_pid);
-    vga_write("\n");
 
     // Validación dura
     if (new_pid == 0 || new_pid >= MAX_PROCESSES) {

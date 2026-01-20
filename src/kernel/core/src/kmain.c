@@ -230,8 +230,6 @@ void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
     }
 
     // Crear procesos de prueba (Quitar después)
-    vga_write("\n[KMAIN] Creando procesos de prueba...\n");
-    
     uint32_t pid1 = scheduler_create_process("test01", test_process01, PROCESS_PRIORITY_NORMAL);
     vga_write("[KMAIN] PID retornado para test01: ");
     vga_write_dec(pid1);
