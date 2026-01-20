@@ -1,5 +1,3 @@
-Mira wn:
-
 #!/bin/bash
 # Script para crear imagen de disco con particiones para NeoOS
 # Partición 1: EXT4 (boot) con GRUB y kernel
@@ -30,7 +28,7 @@ echo -e "${GREEN}=== Creando imagen de disco para NeoOS ===${NC}"
 
 # Verificar que el kernel existe
 if [ ! -f "$KERNEL_ELF" ]; then
-    echo -e "${RED}Error: No se encontró el kernel en $KERNEL_ELF${NC}"
+    echo -e "${RED}[ERROR] No se encontró el kernel en $KERNEL_ELF${NC}"
     exit 1
 fi
 
@@ -88,7 +86,7 @@ sleep 1
 
 # Verificar particiones
 if [ ! -e "${LOOP_DEV}p1" ]; then
-    echo -e "${RED}Error: No se crearon las particiones correctamente${NC}"
+    echo -e "${RED}[ERROR] No se crearon las particiones correctamente${NC}"
     sudo losetup -d "$LOOP_DEV"
     exit 1
 fi

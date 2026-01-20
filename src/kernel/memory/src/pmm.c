@@ -95,8 +95,14 @@ int pmm_init(multiboot_info_t* mbi, __attribute__((unused)) bool kdebug, __attri
     // Calcular memoria total (inferior + superior)
     // mem_lower está en KB y va desde 0 hasta 640KB (memoria convencional)
     // mem_upper está en KB y empieza desde 1MB
-    pmm_memory_size = (mbi->mem_lower + mbi->mem_upper + 1024) * 1024;  // Convertir a bytes
-    pmm_total_pages = pmm_memory_size / PAGE_SIZE;
+    uint64_t total_memory = ((uint64_t)(mbi->mem_lower) + (uint64_t)(mbi->mem_upper) + 1024ULL) * 1024ULL;  // Convertir a bytes
+    // Limitar a 4GB para sistemas de 32 bits
+    if (total_memory > 0xFFFFFFFFULL) {
+        pmm_memory_size = 0xFFFFFFFFU;
+    } else {
+        pmm_memory_size = (uint32_t)total_memory;
+    }
+    pmm_total_pages = (uint32_t)(pmm_memory_size / PAGE_SIZE);
 
     if (is_kdebug()) {
         vga_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
@@ -278,7 +284,29 @@ void pmm_free_page(uint32_t page) {
         return;  // Página inválida
     }
 
+    // Proteger el rango del kernel y bitmap
+    uint32_t kernel_start_page = KERNEL_START / PAGE_SIZE;
+    extern uint32_t kernel_end;
+    uint32_t bitmap_end = (uint32_t)pmm_bitmap + pmm_bitmap_size * 4;
+    uint32_t protected_end_page = (bitmap_end + PAGE_SIZE - 1) / PAGE_SIZE;
+    
+    if (page_num >= kernel_start_page && page_num < protected_end_page) {
+        if (is_kdebug()) {
+            vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
+            vga_write("[PMM] [WARN] Intento de liberar pagina protegida: ");
+            vga_write_dec(page_num);
+            vga_write("\n");
+        }
+        return;  // Página en rango protegido
+    }
+
     if (!pmm_bitmap_test(page_num)) {
+        if (is_kdebug()) {
+            vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
+            vga_write("[PMM] [WARN] Double free detectado en pagina: ");
+            vga_write_dec(page_num);
+            vga_write("\n");
+        }
         return;  // Página ya está libre (double free)
     }
 

@@ -31,4 +31,11 @@ typedef int bool;
 // Macros útiles
 #define NULL ((void*)0)
 
+// Límites de tipos
+#define UINT8_MAX   0xFF
+#define UINT16_MAX  0xFFFF
+#define UINT32_MAX  0xFFFFFFFFU
+#define UINT64_MAX  0xFFFFFFFFFFFFFFFFULL
+#define SIZE_MAX    UINT32_MAX
+
 #endif /* _KERNEL_TYPES_H */

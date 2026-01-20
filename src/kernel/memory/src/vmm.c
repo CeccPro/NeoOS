@@ -114,15 +114,33 @@ int vmm_init(bool kdebug __attribute__((unused)), bool kverbose __attribute__((u
         vga_write("[VMM] Creando identity mapping para los primeros 128MB...\n");
     }
 
+    // Determinar cuánta memoria está realmente disponible
+    uint32_t available_memory = pmm_get_total_pages() * PAGE_SIZE;
+    uint32_t max_map_size = 128 * 1024 * 1024;  // 128MB máximo
+    if (available_memory < max_map_size) {
+        max_map_size = available_memory;
+    }
+    
+    uint32_t tables_needed = (max_map_size + (4 * 1024 * 1024) - 1) / (4 * 1024 * 1024);
+    if (tables_needed > 32) {
+        tables_needed = 32;
+    }
+
+    if (is_kdebug()) {
+        vga_write("[VMM] Mapeando ");
+        vga_write_dec(tables_needed * 4);
+        vga_write(" MB de memoria\n");
+    }
+
     // Crear identity mapping para los primeros 128MB usando tablas estáticas
     // Cada tabla mapea 4MB, así que necesitamos 32 tablas para 128MB
-    for (int table_idx = 0; table_idx < 32; table_idx++) {
+    for (uint32_t table_idx = 0; table_idx < tables_needed; table_idx++) {
         // Configurar la entrada del directorio para esta tabla
         uint32_t table_phys = (uint32_t)&kernel_tables[table_idx];
         kernel_directory->entries[table_idx] = table_phys | PAGE_PRESENT | PAGE_WRITE;
 
         // Llenar la tabla con identity mapping
-        for (int page_idx = 0; page_idx < 1024; page_idx++) {
+        for (uint32_t page_idx = 0; page_idx < 1024; page_idx++) {
             uint32_t phys_addr = (table_idx * 1024 + page_idx) * PAGE_SIZE;
             kernel_tables[table_idx].entries[page_idx] = phys_addr | PAGE_PRESENT | PAGE_WRITE;
         }
@@ -166,7 +184,14 @@ int vmm_map_page(page_directory_t* page_dir, uint32_t virt, uint32_t phys, uint3
             return E_NOMEM;
         }
 
-        // Limpiar la tabla
+        // CRÍTICO: Verificar que la página física esté en el rango de identity mapping
+        // Solo podemos acceder directamente a direcciones < 128MB
+        if (table_phys >= 128 * 1024 * 1024) {
+            pmm_free_page(table_phys);
+            return E_NOMEM;
+        }
+
+        // Limpiar la tabla (acceso directo por identity mapping)
         page_table_t* table = (page_table_t*)table_phys;
         memset(table, 0, sizeof(page_table_t));
 
@@ -176,6 +201,12 @@ int vmm_map_page(page_directory_t* page_dir, uint32_t virt, uint32_t phys, uint3
 
     // Obtener la tabla de páginas
     uint32_t table_phys = page_dir->entries[dir_index] & PAGE_ALIGN_MASK;
+    
+    // CRÍTICO: Validar que esté en identity mapping
+    if (table_phys >= 128 * 1024 * 1024) {
+        return E_NOMEM;
+    }
+    
     page_table_t* table = (page_table_t*)table_phys;
 
     // Mapear la página
@@ -248,8 +279,20 @@ void vmm_switch_directory(page_directory_t* page_dir) {
     current_directory = page_dir;
     
     // Obtener la dirección física del directorio
-    // Por ahora asumimos identity mapping
-    uint32_t phys = (uint32_t)page_dir;
+    uint32_t phys;
+    
+    // Si es el directorio del kernel, usar la dirección física conocida
+    if (page_dir == kernel_directory) {
+        phys = kernel_directory_phys;
+    } else {
+        // Para otros directorios, obtener la dirección física
+        phys = vmm_get_physical(kernel_directory, (uint32_t)page_dir);
+        if (phys == 0) {
+            // Si no se puede obtener, asumir identity mapping
+            phys = (uint32_t)page_dir;
+        }
+    }
+    
     vmm_load_directory(phys);
 }
 

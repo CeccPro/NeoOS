@@ -26,7 +26,7 @@
 #define HEAP_MIN_ALIGN 16
 
 // Tamaño mínimo de bloque
-#define HEAP_MIN_BLOCK_SIZE 32
+#define HEAP_MIN_BLOCK_SIZE 64
 
 // Estructura de un bloque del heap
 typedef struct heap_block {
@@ -35,6 +35,7 @@ typedef struct heap_block {
     bool is_free;                   // ¿Está libre?
     struct heap_block* next;        // Siguiente bloque
     struct heap_block* prev;        // Bloque anterior
+    uint32_t padding[3];            // Padding para alinear a 32 bytes (múltiplo de 16)
 } heap_block_t;
 
 // Variables globales del heap
@@ -43,6 +44,10 @@ static uint32_t heap_end = 0;
 static uint32_t heap_current = 0;  // Puntero para asignación simple antes del heap completo
 static heap_block_t* heap_first_block = NULL;
 static bool heap_initialized = false;
+
+// Verificación estática en tiempo de compilación: el header debe ser múltiplo de HEAP_MIN_ALIGN
+_Static_assert(sizeof(heap_block_t) % HEAP_MIN_ALIGN == 0, 
+               "heap_block_t debe ser múltiplo de HEAP_MIN_ALIGN para garantizar alineación");
 
 /*
  * Funciones auxiliares
@@ -86,10 +91,28 @@ static heap_block_t* heap_find_free_block(size_t size) {
 static void heap_split_block(heap_block_t* block, size_t size) {
     // Solo dividir si el espacio restante es útil
     if (block->size >= size + HEAP_HEADER_SIZE + HEAP_MIN_BLOCK_SIZE) {
-        heap_block_t* new_block = (heap_block_t*)((uint32_t)block + HEAP_HEADER_SIZE + size);
+        // Calcular la dirección del nuevo bloque (alineada)
+        uintptr_t new_block_addr = (uintptr_t)block + HEAP_HEADER_SIZE + size;
+        
+        // Alinear la dirección del nuevo bloque
+        new_block_addr = align_up(new_block_addr, HEAP_MIN_ALIGN);
+        
+        // Recalcular el tamaño del nuevo bloque
+        size_t actual_size = (uintptr_t)new_block_addr - ((uintptr_t)block + HEAP_HEADER_SIZE);
+        
+        // Validar que no se salga del heap y que haya espacio suficiente
+        if (new_block_addr + HEAP_HEADER_SIZE > heap_end ||
+            block->size < actual_size + HEAP_HEADER_SIZE + HEAP_MIN_BLOCK_SIZE) {
+            return; // No dividir si se sale del heap o no hay espacio
+        }
+        
+        heap_block_t* new_block = (heap_block_t*)new_block_addr;
+        
+        // Inicializar el nuevo bloque con ceros primero
+        memset(new_block, 0, sizeof(heap_block_t));
         
         new_block->magic = HEAP_MAGIC;
-        new_block->size = block->size - size - HEAP_HEADER_SIZE;
+        new_block->size = block->size - actual_size - HEAP_HEADER_SIZE;
         new_block->is_free = true;
         new_block->next = block->next;
         new_block->prev = block;
@@ -99,30 +122,59 @@ static void heap_split_block(heap_block_t* block, size_t size) {
         }
         
         block->next = new_block;
-        block->size = size;
+        block->size = actual_size;
     }
 }
+
+// Verifica si dos bloques son contiguos en memoria
+static bool are_contiguous(heap_block_t* a, heap_block_t* b) {
+    return ((uint32_t)a + HEAP_HEADER_SIZE + a->size) == (uint32_t)b;
+}
+
 
 /**
  * Intenta fusionar un bloque con sus vecinos libres
  */
 static void heap_merge_blocks(heap_block_t* block) {
-    // Fusionar con el siguiente si está libre
-    if (block->next != NULL && block->next->is_free) {
-        block->size += HEAP_HEADER_SIZE + block->next->size;
-        block->next = block->next->next;
-        if (block->next != NULL) {
-            block->next->prev = block;
-        }
+    if (!block) {
+        return;
     }
     
-    // Fusionar con el anterior si está libre
-    if (block->prev != NULL && block->prev->is_free) {
-        block->prev->size += HEAP_HEADER_SIZE + block->size;
-        block->prev->next = block->next;
-        if (block->next != NULL) {
-            block->next->prev = block->prev;
+    // Validar el magic del bloque actual
+    if (block->magic != HEAP_MAGIC) {
+        vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
+        vga_write("[HEAP] [ERROR] Intento de fusionar bloque corrupto\n");
+        return;
+    }
+    
+    // Fusionar con el siguiente si está libre Y es contiguo
+    if (block->next && block->next->magic == HEAP_MAGIC && 
+        block->next->is_free && are_contiguous(block, block->next)) {
+        heap_block_t* next = block->next;
+        block->size += HEAP_HEADER_SIZE + next->size;
+        block->next = next->next;
+        if (block->next) {
+            block->next->prev = block;
         }
+        // Invalidar el magic del bloque fusionado para detectar uso después de fusión
+        next->magic = 0;
+    }
+
+    // Fusionar con el anterior si está libre Y es contiguo
+    if (block->prev && block->prev->magic == HEAP_MAGIC && 
+        block->prev->is_free && are_contiguous(block->prev, block)) {
+        // Guardar referencias necesarias antes de fusionar
+        heap_block_t* prev_block = block->prev;
+        heap_block_t* next_block = block->next;
+        
+        prev_block->size += HEAP_HEADER_SIZE + block->size;
+        prev_block->next = next_block;
+        if (next_block) {
+            next_block->prev = prev_block;
+        }
+        // Invalidar el magic del bloque fusionado
+        block->magic = 0;
+        // No usar 'block' después de este punto, ya fue fusionado
     }
 }
 
@@ -134,57 +186,92 @@ static void heap_merge_blocks(heap_block_t* block) {
  * de la región baja de memoria.
  */
 static bool heap_expand(size_t needed_size) {
-    size_t total_needed = needed_size + HEAP_HEADER_SIZE;
-    size_t pages_needed = (total_needed + PAGE_SIZE - 1) / PAGE_SIZE;
-    
-    // Verificar que no excedamos el límite del heap
-    if (heap_current + pages_needed * PAGE_SIZE > heap_end) {
+    // Protección contra integer overflow
+    if (needed_size > (SIZE_MAX - HEAP_HEADER_SIZE)) {
         if (is_kdebug()) {
             vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
-            vga_write("[HEAP] [DEBUG] heap_current + needed > heap_end\n");
+            vga_write("[HEAP] [DEBUG] needed_size causa overflow\n");
         }
         return false;
     }
     
-    // Con identity mapping de los primeros 128MB, podemos usar directamente
-    // el espacio virtual si asignamos físicamente páginas en ese rango.
-    // Por simplicidad, como ya tenemos identity mapping, solo avanzamos heap_current
-    // Las páginas ya están mapeadas virtualmente por el identity mapping del VMM.
-    
+    size_t total_needed = needed_size + HEAP_HEADER_SIZE;
+    size_t pages_needed = (total_needed + PAGE_SIZE - 1) / PAGE_SIZE;
+    size_t expand_size = pages_needed * PAGE_SIZE;
+
+    // Validar overflow en la suma
+    if (heap_current > heap_end || expand_size > (heap_end - heap_current)) {
+        if (is_kdebug()) {
+            vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
+            vga_write("[HEAP] [DEBUG] heap overflow\n");
+        }
+        return false;
+    }
+
     if (is_kdebug()) {
         vga_write("[HEAP] Expandiendo heap: ");
         vga_write_dec(pages_needed);
         vga_write(" paginas\n");
     }
+
+    // Si no hay bloques todavía, crear el primero
+    if (heap_first_block == NULL) {
+        // Asegurar que heap_current esté alineado
+        heap_current = align_up(heap_current, HEAP_MIN_ALIGN);
+        
+        // CRÍTICO: Limpiar toda la región de memoria antes de usarla
+        memset((void*)heap_current, 0, expand_size);
+        
+        heap_block_t* block = (heap_block_t*)heap_current;
+        block->magic = HEAP_MAGIC;
+        block->size = expand_size - HEAP_HEADER_SIZE;
+        block->is_free = true;
+        block->next = NULL;
+        block->prev = NULL;
+
+        heap_first_block = block;
+        heap_current += expand_size;
+        return true;
+    }
+
+    // Buscar el último bloque
+    heap_block_t* last = heap_first_block;
+    while (last->next) {
+        last = last->next;
+    }
+
+    // Si el último bloque es libre y está al final del heap, extenderlo
+    uintptr_t last_end =
+        (uintptr_t)last + HEAP_HEADER_SIZE + last->size;
+
+    if (last->is_free && last_end == heap_current) {
+        // CRÍTICO: Limpiar la nueva región de memoria que se va a agregar
+        memset((void*)heap_current, 0, expand_size);
+        
+        last->size += expand_size;
+        heap_current += expand_size;
+        return true;
+    }
+
+    // Si no, crear un bloque nuevo
+    // Asegurar que heap_current esté alineado
+    heap_current = align_up(heap_current, HEAP_MIN_ALIGN);
     
-    // Crear un nuevo bloque con el espacio expandido
+    // CRÍTICO: Limpiar toda la región de memoria antes de usarla
+    memset((void*)heap_current, 0, expand_size);
+    
     heap_block_t* new_block = (heap_block_t*)heap_current;
     new_block->magic = HEAP_MAGIC;
-    new_block->size = pages_needed * PAGE_SIZE - HEAP_HEADER_SIZE;
+    new_block->size = expand_size - HEAP_HEADER_SIZE;
     new_block->is_free = true;
     new_block->next = NULL;
-    new_block->prev = NULL;
-    
-    // Agregar a la lista
-    if (heap_first_block == NULL) {
-        heap_first_block = new_block;
-    } else {
-        heap_block_t* last = heap_first_block;
-        while (last->next != NULL) {
-            last = last->next;
-        }
-        last->next = new_block;
-        new_block->prev = last;
-        
-        // Intentar fusionar con el bloque anterior
-        if (last->is_free) {
-            heap_merge_blocks(last);
-        }
-    }
-    
-    heap_current += pages_needed * PAGE_SIZE;
+    new_block->prev = last;
+
+    last->next = new_block;
+    heap_current += expand_size;
     return true;
 }
+
 
 /**
  * Inicializa el heap del kernel
@@ -195,11 +282,11 @@ int heap_init(uint32_t start, uint32_t size, bool kdebug __attribute__((unused))
         vga_write("[HEAP] Inicializando heap del kernel...\n");
     }
     
-    heap_start = start;
+    // Asegurar que el heap comience alineado a 16 bytes
+    heap_start = align_up(start, HEAP_MIN_ALIGN);
     heap_end = start + size;
-    heap_current = start;
+    heap_current = heap_start;
     heap_first_block = NULL;
-    heap_initialized = true;
     
     if (is_kdebug()) {
         vga_write("[HEAP] Rango: ");
@@ -217,6 +304,8 @@ int heap_init(uint32_t start, uint32_t size, bool kdebug __attribute__((unused))
         vga_write("[HEAP] [FAIL] No se pudo expandir el heap inicial\n");
         return E_NOMEM;
     }
+    
+    heap_initialized = true;
     
     if (is_kverbose()) {
         vga_write("[HEAP] Heap inicializado\n");
@@ -284,7 +373,14 @@ void* kmalloc(size_t size) {
     heap_split_block(block, size);
     
     // Retornar puntero a los datos (después del header)
-    return (void*)((uint32_t)block + HEAP_HEADER_SIZE);
+    void* ptr = (void*)((uint32_t)block + HEAP_HEADER_SIZE);
+    
+    // NOTA: No necesitamos memset aquí porque:
+    // 1. heap_expand ya limpia la memoria cuando se crean nuevos bloques
+    // 2. kfree limpia la memoria cuando se libera
+    // Por lo tanto, todos los bloques libres ya están limpios
+    
+    return ptr;
 }
 
 /**
@@ -310,7 +406,14 @@ void* kmalloc_p(size_t size, uint32_t* phys) {
     
     void* ptr = kmalloc(size);
     if (ptr != NULL && phys != NULL) {
-        *phys = vmm_get_physical(vmm_get_kernel_directory(), (uint32_t)ptr);
+        uint32_t physical = vmm_get_physical(vmm_get_kernel_directory(), (uint32_t)ptr);
+        if (physical == 0) {
+            vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
+            vga_write("[HEAP] [ERROR] No se pudo obtener direccion fisica\n");
+            kfree(ptr);
+            return NULL;
+        }
+        *phys = physical;
     }
     return ptr;
 }
@@ -325,7 +428,14 @@ void* kmalloc_ap(size_t size, uint32_t* phys) {
     
     void* ptr = kmalloc_a(size);
     if (ptr != NULL && phys != NULL) {
-        *phys = vmm_get_physical(vmm_get_kernel_directory(), (uint32_t)ptr);
+        uint32_t physical = vmm_get_physical(vmm_get_kernel_directory(), (uint32_t)ptr);
+        if (physical == 0) {
+            vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
+            vga_write("[HEAP] [ERROR] No se pudo obtener direccion fisica\n");
+            kfree(ptr);
+            return NULL;
+        }
+        *phys = physical;
     }
     return ptr;
 }
@@ -349,6 +459,10 @@ void kfree(void* ptr) {
         vga_write("\n");
         return;
     }
+    
+    // CRÍTICO: Limpiar la memoria antes de liberarla para evitar
+    // que datos viejos contaminen futuras asignaciones
+    memset(ptr, 0, block->size);
     
     // Marcar como libre
     block->is_free = true;

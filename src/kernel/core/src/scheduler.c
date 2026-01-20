@@ -19,7 +19,8 @@ static process_queue_t ready_queues[5]; // Una cola por nivel de prioridad (0-4)
 static process_queue_t blocked_queue;   // Cola de procesos bloqueados
 
 // Tabla de procesos (para búsqueda rápida por PID)
-static process_t* process_table[MAX_PROCESSES];
+// CAMBIADO: Ahora es un puntero que se asignará dinámicamente
+static process_t** process_table = NULL;
 
 // Contador de PIDs (con wrap-around protegido)
 static uint32_t next_pid = 1;
@@ -48,24 +49,40 @@ static const uint32_t priority_weights[5] = {0, 1, 2, 4, 8}; // IDLE, LOW, NORMA
  * @return PID libre, o 0 si no hay disponibles
  */
 static uint32_t find_free_pid(void) {
+    if (!process_table) {
+        return 0;
+    }
+
+    if (next_pid == 0 || next_pid >= MAX_PROCESSES) {
+        next_pid = 1;
+    }
+
     uint32_t start_pid = next_pid;
-    
-    // Buscar un slot libre
-    do {
-        if (next_pid >= MAX_PROCESSES) {
-            next_pid = 1; // Wrap around (PID 0 es el idle)
-        }
-        
+
+    for (uint32_t iterations = 0; iterations < MAX_PROCESSES; iterations++) {
+
         if (process_table[next_pid] == NULL) {
-            return next_pid++;
+            uint32_t free_pid = next_pid;
+            next_pid++;
+            if (next_pid >= MAX_PROCESSES) {
+                next_pid = 1;
+            }
+            return free_pid;
         }
-        
+
         next_pid++;
-    } while (next_pid != start_pid);
-    
-    // No hay PIDs disponibles
+        if (next_pid >= MAX_PROCESSES) {
+            next_pid = 1;
+        }
+
+        if (next_pid == start_pid) {
+            break;
+        }
+    }
+
     return 0;
 }
+
 
 /**
  * Obtener el quantum (time slice) para una prioridad específica
@@ -96,6 +113,17 @@ static void queue_init(process_queue_t* queue) {
  * Agregar un proceso al final de una cola
  */
 void scheduler_queue_add(process_queue_t* queue, process_t* process) {
+    // Validación: no agregar si ya está en una cola
+    if (process->prev != NULL || process->next != NULL) {
+        // El proceso ya está en una cola, no agregarlo de nuevo
+        return;
+    }
+    
+    // Validación adicional: verificar si ya es head o tail de alguna cola
+    if (queue->head == process || queue->tail == process) {
+        return;
+    }
+    
     if (queue->tail == NULL) {
         // Cola vacía
         queue->head = process;
@@ -116,6 +144,12 @@ void scheduler_queue_add(process_queue_t* queue, process_t* process) {
  * Remover un proceso de una cola
  */
 void scheduler_queue_remove(process_queue_t* queue, process_t* process) {
+    // Validación: si el proceso no está en ninguna cola, no hacer nada
+    if (process->prev == NULL && process->next == NULL && 
+        queue->head != process && queue->tail != process) {
+        return;
+    }
+    
     if (process->prev != NULL) {
         process->prev->next = process->next;
     } else {
@@ -132,7 +166,10 @@ void scheduler_queue_remove(process_queue_t* queue, process_t* process) {
     
     process->prev = NULL;
     process->next = NULL;
-    queue->count--;
+    
+    if (queue->count > 0) {
+        queue->count--;
+    }
 }
 
 /**
@@ -153,14 +190,7 @@ process_t* scheduler_queue_pop(process_queue_t* queue) {
  * Si un proceso retorna de su entry point, se termina automáticamente
  */
 void process_exit_handler(void) {
-    if (current_process != NULL) {
-        vga_set_color(VGA_COLOR_LIGHT_BROWN, VGA_COLOR_BLACK);
-        vga_write("[SCHED] Proceso ");
-        vga_write(current_process->name);
-        vga_write(" (PID: ");
-        vga_write_dec(current_process->pid);
-        vga_write(") terminado\n");
-        
+    if (current_process != NULL) {        
         scheduler_terminate_process(current_process->pid);
     }
     
@@ -185,7 +215,7 @@ void idle_process_entry(void) {
 void scheduler_init(bool verbose) {
     if (verbose) {
         vga_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
-        vga_write("[SCHED] Inicializando scheduler...\n");
+        
     }
     
     // Inicializar las colas de procesos
@@ -194,6 +224,15 @@ void scheduler_init(bool verbose) {
     }
     queue_init(&blocked_queue);
     
+
+    
+    process_table = (process_t**)kmalloc(MAX_PROCESSES * sizeof(process_t*));
+    if (process_table == NULL) {
+        vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
+        vga_write("[SCHED] [ERROR] no se pudo asignar memoria para la tabla de procesos\n");
+        return;
+    }
+    
     // Inicializar la tabla de procesos
     for (int i = 0; i < MAX_PROCESSES; i++) {
         process_table[i] = NULL;
@@ -201,13 +240,13 @@ void scheduler_init(bool verbose) {
     
     // Crear el proceso idle
     if (verbose) {
-        vga_write("[SCHED] Creando proceso idle...\n");
+        
     }
     
     idle_process = (process_t*)kmalloc(sizeof(process_t));
     if (idle_process == NULL) {
         vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
-        vga_write("[SCHED] Error: no se pudo asignar memoria para el proceso idle\n");
+        vga_write("[SCHED] [ERROR] no se pudo asignar memoria para el proceso idle\n");
         return;
     }
     
@@ -225,7 +264,7 @@ void scheduler_init(bool verbose) {
     idle_process->kernel_stack = (uint32_t)kmalloc(KERNEL_STACK_SIZE);
     if (idle_process->kernel_stack == 0) {
         vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
-        vga_write("[SCHED] Error: no se pudo asignar stack para el proceso idle\n");
+        vga_write("[SCHED] [ERROR] no se pudo asignar stack para el proceso idle\n");
         kfree(idle_process);
         idle_process = NULL;
         return;
@@ -249,98 +288,182 @@ void scheduler_init(bool verbose) {
     
     total_processes = 1;
     
-    // El proceso idle es el primer proceso en ejecutarse
-    current_process = idle_process;
-    current_process->state = PROCESS_STATE_RUNNING;
+    // IMPORTANTE: NO establecer current_process aquí
+    // El primer scheduler_switch() lo establecerá correctamente
+    current_process = NULL;
     
     scheduler_initialized = true;
     
     if (verbose) {
         vga_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
-        vga_write("[SCHED] Scheduler inicializado correctamente\n");
-        vga_write("[SCHED] Proceso idle creado (PID: 0)\n");
+        
+        
     }
 }
 
 /**
  * Crear un nuevo proceso
- * 
- * RACE CONDITION NOTE:
- * Sin SMP, esto es seguro. Con SMP necesitará locks.
+ *
+ * NOTA:
+ * - Sin SMP esto es seguro
+ * - Con SMP necesita locks
  */
 uint32_t scheduler_create_process(const char* name, void (*entry_point)(void), process_priority_t priority) {
-    if (!scheduler_initialized) {
+    if (!scheduler_initialized || !process_table) {
         return 0;
     }
-    
+
     if (total_processes >= MAX_PROCESSES) {
-        return 0; // No hay espacio para más procesos
+        return 0;
     }
-    
-    // Deshabilitar interrupciones mientras modificamos estructuras críticas
+
     __asm__ volatile("cli");
-    
-    // Asignar memoria para el PCB
+
+    vga_write("[SCHED] [DEBUG] Creando proceso '");
+    vga_write(name);
+    vga_write("'...\n");
+
     process_t* process = (process_t*)kmalloc(sizeof(process_t));
-    if (process == NULL) {
+    if (!process) {
+        vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
+        vga_write("[SCHED] [ERROR] kmalloc falló al asignar PCB\n");
         __asm__ volatile("sti");
         return 0;
     }
-    
-    // Asignar un PID con validación y wrap-around
-    uint32_t pid = find_free_pid();
-    if (pid == 0) {
+
+    vga_write("[SCHED] [DEBUG] PCB asignado en: ");
+    vga_write_hex((uint32_t)process);
+    vga_write("\n");
+
+    // Validar que la dirección retornada esté alineada
+    if (((uintptr_t)process & 0xF) != 0) {
+        vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
+        vga_write("[SCHED] [ERROR] kmalloc retornó dirección no alineada: ");
+        vga_write_hex((uint32_t)process);
+        vga_write("\n");
         kfree(process);
         __asm__ volatile("sti");
-        return 0; // No hay PIDs disponibles
+        return 0;
+    }
+
+    // Verificar que la memoria esté inicializada a cero
+    vga_write("[SCHED] [DEBUG] Verificando inicialización: pid=");
+    vga_write_dec(process->pid);
+    vga_write(" state=");
+    vga_write_dec(process->state);
+    vga_write("\n");
+
+    uint32_t new_pid = find_free_pid();
+
+    vga_write("[SCHED] [DEBUG] PID asignado: ");
+    vga_write_dec(new_pid);
+    vga_write("\n");
+
+    // Validación dura
+    if (new_pid == 0 || new_pid >= MAX_PROCESSES) {
+        vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
+        vga_write("[SCHED] [ERROR] PID inválido: ");
+        vga_write_dec(new_pid);
+        vga_write("\n");
+        kfree(process);
+        __asm__ volatile("sti");
+        return 0;
+    }
+
+    // Clavar PID inmediatamente y verificar que se guardó correctamente
+    process->pid = new_pid;
+    
+    vga_write("[SCHED] [DEBUG] PID escrito, verificando...\n");
+    
+    // Validación inmediata: verificar que el PID se escribió correctamente
+    if (process->pid != new_pid) {
+        vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
+        vga_write("[SCHED] [ERROR] El PID no se guardó correctamente en memoria\n");
+        vga_write("Esperado: ");
+        vga_write_dec(new_pid);
+        vga_write(", Obtenido: ");
+        vga_write_dec(process->pid);
+        vga_write("\n");
+        kfree(process);
+        __asm__ volatile("sti");
+        return 0;
     }
     
-    // Configurar el proceso
-    process->pid = pid;
-    strncpy(process->name, name, 31);
-    process->name[31] = '\0';
+    vga_write("[SCHED] [DEBUG] PID verificado OK\n");
+
+    // Nombre
+    if (name) {
+        strncpy(process->name, name, sizeof(process->name) - 1);
+        process->name[sizeof(process->name) - 1] = '\0';
+    }
+
     process->state = PROCESS_STATE_READY;
     process->priority = priority;
-    process->time_slices = 0;
     process->ticks_remaining = get_quantum_for_priority(priority);
-    process->next = NULL;
-    process->prev = NULL;
-    
-    // Asignar el stack del kernel
+
+    // Stack del kernel
     process->kernel_stack = (uint32_t)kmalloc(KERNEL_STACK_SIZE);
-    if (process->kernel_stack == 0) {
+    if (!process->kernel_stack) {
         kfree(process);
         __asm__ volatile("sti");
         return 0;
     }
-    
-    // Configurar el contexto inicial usando assembly
+
+    // Stack inicial
     process->esp = init_process_stack(
         process->kernel_stack + KERNEL_STACK_SIZE,
         entry_point,
         process_exit_handler
     );
+
     process->ebp = 0;
     process->eip = (uint32_t)entry_point;
-    process->eflags = 0x202; // IF habilitado
-    
-    // TODO: Configurar el page directory para el proceso (cuando esté VMM)
+    process->eflags = 0x202;
     process->page_directory = 0;
+
+    // Última verificación antes de tocar tablas globales
+    if (process->pid == 0 || process->pid >= MAX_PROCESSES) {
+        // Desactivar interrupciones
+        __asm__ volatile("cli");
+        vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
+        vga_write("[SCHED] [ERROR] PID invalido generado al crear proceso. No se puede continuar.\n");
+        vga_write("PID generado: ");
+        vga_write_dec(process->pid);
+        vga_write("\n");
+        for (;;) {
+            __asm__ volatile("hlt");
+        }
+    }
+
+    vga_write("[SCHED] [DEBUG] Agregando a process_table[");
+    vga_write_dec(process->pid);
+    vga_write("]\n");
+
+    process_table[process->pid] = process;
     
-    // Agregar a la tabla de procesos
-    process_table[pid] = process;
+    vga_write("[SCHED] [DEBUG] Verificando tabla: process_table[");
+    vga_write_dec(process->pid);
+    vga_write("] = ");
+    vga_write_hex((uint32_t)process_table[process->pid]);
+    vga_write("\n");
     
-    // Agregar a la cola de ready de su prioridad
     scheduler_queue_add(&ready_queues[priority], process);
-    
-    // Incrementar contador de procesos (protegido por cli)
+
     total_processes++;
-    
-    // Restaurar interrupciones
+
     __asm__ volatile("sti");
-    
-    return pid;
+
+    vga_set_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
+    vga_write("[SCHED] Proceso '");
+    vga_write(name);
+    vga_write("' creado exitosamente con PID ");
+    vga_write_dec(process->pid);
+    vga_write("\n");
+    vga_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
+
+    return process->pid;
 }
+
 
 /**
  * Terminar un proceso
@@ -484,10 +607,17 @@ process_t* scheduler_select_next(void) {
     }
     
     // No hay procesos ready (excepto idle), retornar idle
-    if (ready_queues[PROCESS_PRIORITY_IDLE].count > 0) {
-        return scheduler_queue_pop(&ready_queues[PROCESS_PRIORITY_IDLE]);
+    // CRÍTICO: NO remover idle de la cola, solo retornarlo
+    if (ready_queues[PROCESS_PRIORITY_IDLE].count > 0 && idle_process != NULL) {
+        // Si idle está en la cola, removerlo
+        if (idle_process->prev != NULL || idle_process->next != NULL || 
+            ready_queues[PROCESS_PRIORITY_IDLE].head == idle_process) {
+            scheduler_queue_remove(&ready_queues[PROCESS_PRIORITY_IDLE], idle_process);
+        }
+        return idle_process;
     }
     
+    // Último recurso: retornar idle directamente
     return idle_process;
 }
 
@@ -496,12 +626,42 @@ process_t* scheduler_select_next(void) {
  * Guarda el contexto del proceso actual y carga el contexto del nuevo proceso
  */
 void scheduler_switch(void) {
-    if (!scheduler_initialized || current_process == NULL) {
+    if (!scheduler_initialized) {
         return;
     }
     
     // Deshabilitar interrupciones durante el context switch
     __asm__ volatile("cli");
+    
+    // Caso especial: primer switch desde el kernel (current_process == NULL)
+    if (current_process == NULL) {
+        // Seleccionar el primer proceso a ejecutar
+        process_t* next_process = scheduler_select_next();
+        
+        if (next_process == NULL) {
+            next_process = idle_process;
+        }
+        
+        // Configurar el nuevo proceso
+        next_process->state = PROCESS_STATE_RUNNING;
+        next_process->ticks_remaining = get_quantum_for_priority(next_process->priority);
+        next_process->time_slices++;
+        
+        current_process = next_process;
+        
+        // CRÍTICO: Para el primer switch, usamos una estrategia diferente
+        // Creamos un "contexto falso" temporal en el stack del kernel actual
+        // para que switch_context pueda guardar algo (aunque no lo usaremos nunca)
+        uint32_t dummy_esp = 0;
+        
+        // Llamar a switch_context normalmente
+        // El dummy_esp guardará el estado del kernel, pero nunca volveremos aquí
+        switch_context(&dummy_esp, next_process->esp);
+        
+        // Nunca llegamos aquí
+        __asm__ volatile("sti");
+        return;
+    }
     
     // Guardar el estado del proceso actual
     process_t* old_process = current_process;
@@ -511,6 +671,7 @@ void scheduler_switch(void) {
     if (old_process->state == PROCESS_STATE_RUNNING) {
         // El proceso todavía está activo, moverlo a READY
         old_process->state = PROCESS_STATE_READY;
+        // Solo agregar si no es el idle process siendo re-encolado
         scheduler_queue_add(&ready_queues[old_process->priority], old_process);
     }
     // Si state != RUNNING, significa que:

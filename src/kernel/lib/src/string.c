@@ -23,10 +23,11 @@ void* memcpy(void* dest, const void* src, size_t n) {
  * Establece n bytes de s al valor c
  */
 void* memset(void* s, int c, size_t n) {
-    unsigned char* p = (unsigned char*)s;
+    volatile unsigned char* p = (volatile unsigned char*)s;
+    unsigned char value = (unsigned char)c;
     
     for (size_t i = 0; i < n; i++) {
-        p[i] = (unsigned char)c;
+        p[i] = value;
     }
     
     return s;

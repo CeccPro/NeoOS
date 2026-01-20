@@ -32,15 +32,6 @@ void test_process02(void) {
     }
 }
 
-void test_process03(void) {
-    for (int i = 0; i < 10; i++) {
-        vga_write("[TEST03] Running iteration ");
-        vga_write_dec(i);
-        vga_write("\n");
-        timer_wait_ms(100);
-    }
-}
-
 // Símbolo proporcionado por el linker script
 extern uint32_t __kernel_end;
 uint32_t kernel_end = (uint32_t)&__kernel_end;
@@ -226,6 +217,7 @@ void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
         vga_write("== PIT inicializado ==\n\n");
     }
 
+
     // Inicializar el Scheduler
     if (kverbose) {
         vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
@@ -238,43 +230,54 @@ void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
     }
 
     // Crear procesos de prueba (Quitar después)
-    vga_set_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
-    vga_write("\nCreando procesos de prueba...\n");
+    vga_write("\n[KMAIN] Creando procesos de prueba...\n");
     
     uint32_t pid1 = scheduler_create_process("test01", test_process01, PROCESS_PRIORITY_NORMAL);
-    vga_write("test01 retorno PID: ");
+    vga_write("[KMAIN] PID retornado para test01: ");
     vga_write_dec(pid1);
-    vga_write(" (hex: ");
-    vga_write_hex(pid1);
-    vga_write(")\n");
+    vga_write("\n");
     
     uint32_t pid2 = scheduler_create_process("test02", test_process02, PROCESS_PRIORITY_NORMAL);
-    vga_write("test02 retorno PID: ");
+    vga_write("[KMAIN] PID retornado para test02: ");
     vga_write_dec(pid2);
-    vga_write(" (hex: ");
-    vga_write_hex(pid2);
-    vga_write(")\n");
-    
-    vga_write("Total procesos: ");
-    vga_write_dec(scheduler_get_process_count());
     vga_write("\n");
+
 
     // TODO: Inicializar subsistemas adicionales del kernel:
     // - IPC
     // - Sistema de archivos
     // - Module Manager
 
-    vga_write("Subsistemas del kernel iniciados correctamente\n");
+    vga_write("\nSubsistemas del kernel iniciados correctamente\n");
 
-    // Cargar la partición de NeoOS (Por ahora solo verificar el MAGIC al inicio de la partición [Primeros 512B])
+    // Cargar la partición de NeoOS
     if (kverbose) {
         vga_set_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
         vga_write("Cargando particion de NeoOS...\n");
         // TODO: Implementar carga de partición NeoOS
     }
     
-    // Loop infinito - el kernel no debe terminar
+    /*
+    // DESHABILITADO TEMPORALMENTE PARA DEBUG
+    vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
+    vga_write("\n[DEBUG] Context switch DESHABILITADO - Deteniendo kernel\n");
+    vga_write("Presiona una tecla o reinicia para continuar...\n");
     while (1) {
         __asm__ volatile("hlt");
     }
+    */
+
+    /*
+    // Transferir el control al scheduler (nunca retorna)
+    vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
+    vga_write("\n=== Iniciando scheduler ===\n\n");
+    scheduler_switch();
+    
+    // Nunca debemos llegar aquí
+    vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
+    vga_write("ERROR: scheduler_switch retorno!\n");
+    while (1) {
+        __asm__ volatile("hlt");
+    }
+    */
 }
