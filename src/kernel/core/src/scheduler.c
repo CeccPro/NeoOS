@@ -338,12 +338,9 @@ uint32_t scheduler_create_process(const char* name, void (*entry_point)(void), p
         return 0;
     }
 
-    // Verificar que la memoria esté inicializada a cero
-    vga_write("[SCHED] [DEBUG] Verificando inicialización: pid=");
-    vga_write_dec(process->pid);
-    vga_write(" state=");
-    vga_write_dec(process->state);
-    vga_write("\n");
+    // Memory barrier: asegurar que el memset se complete antes de continuar
+    // y prevenir que el compilador reordene las operaciones
+    __asm__ volatile("" ::: "memory");
 
     uint32_t new_pid = find_free_pid();
 
