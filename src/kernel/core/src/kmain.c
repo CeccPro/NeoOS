@@ -16,7 +16,9 @@
 // Test (Quitar después)
 void test_process01(void) {
     for (int i = 0; i < 10; i++) {
+        vga_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
         vga_write("[TEST01] Running iteration ");
+        vga_set_color(VGA_COLOR_YELLOW, VGA_COLOR_BLACK);
         vga_write_dec(i);
         vga_write("\n");
         timer_wait_ms(100);
@@ -25,7 +27,9 @@ void test_process01(void) {
 
 void test_process02(void) {
     for (int i = 0; i < 10; i++) {
+        vga_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
         vga_write("[TEST02] Running iteration ");
+        vga_set_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
         vga_write_dec(i);
         vga_write("\n");
         timer_wait_ms(100);
@@ -229,6 +233,7 @@ void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
         vga_write("== Scheduler inicializado ==\n");
     }
 
+    vga_write("\n");
     // Crear procesos de prueba (Quitar después)
     uint32_t pid1 = scheduler_create_process("test01", test_process01, PROCESS_PRIORITY_NORMAL);
     vga_write("[KMAIN] PID retornado para test01: ");
@@ -265,10 +270,7 @@ void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
     }
     */
 
-    /*
     // Transferir el control al scheduler (nunca retorna)
-    vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
-    vga_write("\n=== Iniciando scheduler ===\n\n");
     scheduler_switch();
     
     // Nunca debemos llegar aquí
@@ -277,5 +279,15 @@ void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
     while (1) {
         __asm__ volatile("hlt");
     }
-    */
+
+    // Detener el kernel si llega aquí (no debería, pero
+    // con lo que he vivido estas últimas dos semanas debuggeando
+    // comienzo a creer que el compilador conspira contra mí
+    // Y que todo es posible)
+    vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
+    vga_write("ERROR: Por alguna razón el kernel se pasó por los huevos\n");
+    vga_write("todos los hlt anteriores y llegó aquí. Deteniendo el kernel...\n");
+    while (1) {
+        __asm__ volatile("hlt");
+    }
 }

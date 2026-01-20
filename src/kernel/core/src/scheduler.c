@@ -215,7 +215,7 @@ void idle_process_entry(void) {
 void scheduler_init(bool verbose) {
     if (verbose) {
         vga_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
-        
+        vga_write("[SCHED] Inicializando scheduler...\n");
     }
     
     // Inicializar las colas de procesos
@@ -340,6 +340,8 @@ uint32_t scheduler_create_process(const char* name, void (*entry_point)(void), p
 
     // Memory barrier: asegurar que el memset se complete antes de continuar
     // y prevenir que el compilador reordene las operaciones
+    // ESTO ES CRITICO. Por alguna razón el compilador rompe
+    // el kernel al no usar esto aquí.
     __asm__ volatile("" ::: "memory");
 
     uint32_t new_pid = find_free_pid();
@@ -358,7 +360,10 @@ uint32_t scheduler_create_process(const char* name, void (*entry_point)(void), p
     // Clavar PID inmediatamente y verificar que se guardó correctamente
     process->pid = new_pid;
     
-    vga_write("[SCHED] [DEBUG] PID escrito, verificando...\n");
+    // Sí, otra memory barrier después de escribir el PID
+    // (Sí, esto está jodido, necesito corregirlo luego)
+    // (Definitivamente hoy no XD)
+    __asm__ volatile("" ::: "memory");
     
     // Validación inmediata: verificar que el PID se escribió correctamente
     if (process->pid != new_pid) {
@@ -373,8 +378,6 @@ uint32_t scheduler_create_process(const char* name, void (*entry_point)(void), p
         __asm__ volatile("sti");
         return 0;
     }
-    
-    vga_write("[SCHED] [DEBUG] PID verificado OK\n");
 
     // Nombre
     if (name) {
@@ -420,31 +423,13 @@ uint32_t scheduler_create_process(const char* name, void (*entry_point)(void), p
         }
     }
 
-    vga_write("[SCHED] [DEBUG] Agregando a process_table[");
-    vga_write_dec(process->pid);
-    vga_write("]\n");
-
     process_table[process->pid] = process;
-    
-    vga_write("[SCHED] [DEBUG] Verificando tabla: process_table[");
-    vga_write_dec(process->pid);
-    vga_write("] = ");
-    vga_write_hex((uint32_t)process_table[process->pid]);
-    vga_write("\n");
     
     scheduler_queue_add(&ready_queues[priority], process);
 
     total_processes++;
 
     __asm__ volatile("sti");
-
-    vga_set_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
-    vga_write("[SCHED] Proceso '");
-    vga_write(name);
-    vga_write("' creado exitosamente con PID ");
-    vga_write_dec(process->pid);
-    vga_write("\n");
-    vga_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
 
     return process->pid;
 }

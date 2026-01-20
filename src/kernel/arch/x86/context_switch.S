@@ -42,11 +42,17 @@ switch_context:
     pushl %esi
     pushl %edi
     
+    # Guardar EFLAGS
+    pushf
+    
     # Guardar el ESP actual en *old_esp
     movl %esp, (%eax)
     
     # Cambiar al nuevo ESP
     movl %edx, %esp
+    
+    # Restaurar EFLAGS
+    popf
     
     # Restaurar registros del nuevo proceso
     popl %edi
@@ -63,6 +69,10 @@ switch_context:
  * Construye un stack que hace que switch_context() crea que el proceso
  * estaba ejecutando y fue guardado. Cuando switch_context() restaure
  * este stack, el proceso comenzará a ejecutar en entry_point.
+ * 
+ * IMPORTANTE: Cuando entry_point retorne, debe saltar a exit_handler.
+ * Para lograr esto, ponemos exit_handler en la posición de "return address"
+ * del entry_point en su propio stack frame.
  * 
  * C signature: uint32_t init_process_stack(
  *                  uint32_t stack_top,
@@ -83,65 +93,52 @@ init_process_stack:
     # Alinear stack a 16 bytes (requerido por x86 ABI)
     andl $0xFFFFFFF0, %eax
     
-    # Construir el stack como si switch_context hubiera guardado el estado
+    # Construir el stack del proceso:
     # 
-    # switch_context GUARDA (push, en este orden):
-    #   pushl %ebp
-    #   pushl %ebx  
-    #   pushl %esi
-    #   pushl %edi
+    # Cuando switch_context restaura, hace:
+    #   popf (EFLAGS)
+    #   popl %edi, %esi, %ebx, %ebp
+    #   ret  -> salta a entry_point
     #
-    # Esto deja el stack así (de menor a mayor dirección):
-    #   [ESP + 0] = edi  <- ESP apunta aquí
-    #   [ESP + 4] = esi
-    #   [ESP + 8] = ebx
-    #   [ESP + 12] = ebp
-    #   [ESP + 16] = return address
+    # Cuando entry_point ejecuta, su stack debe tener:
+    #   [ESP] = exit_handler (para que ret salte ahí)
     #
-    # switch_context RESTAURA (pop, en este orden):
-    #   popl %edi   -> lee [ESP + 0]
-    #   popl %esi   -> lee [ESP + 4]
-    #   popl %ebx   -> lee [ESP + 8]
-    #   popl %ebp   -> lee [ESP + 12]
-    #   ret         -> lee [ESP + 16]
-    #
-    # Por lo tanto, debemos construir en ORDEN INVERSO:
-    # (construimos de arriba hacia abajo, decrementando)
-    # El stack crece hacia abajo, pero lo construimos desde arriba
+    # Entonces construimos DOS frames:
+    # 1. Frame para switch_context (EFLAGS, registros, return=entry_point)
+    # 2. Frame para entry_point (return=exit_handler)
     
-    # Construimos desde la dirección más alta hacia abajo:
-    # Recordar: switch_context hace pushl en orden: ebp, ebx, esi, edi
-    # Por lo tanto el stack queda (de ESP hacia arriba):
-    #   [ESP + 0]  = edi  <- ESP debe apuntar aquí
-    #   [ESP + 4]  = esi
-    #   [ESP + 8]  = ebx
-    #   [ESP + 12] = ebp
-    #   [ESP + 16] = return address (entry_point)
-    #
-    # Construimos de arriba hacia abajo con subl:
+    # === Frame del entry_point (construir primero, está más arriba) ===
+    # Return address para cuando entry_point haga ret
+    subl $4, %eax
+    movl %ecx, (%eax)       # return address = exit_handler
     
+    # === Frame para switch_context ===
     # Primero: entry_point (el 'ret' de switch_context salta aquí)
     subl $4, %eax
-    movl %ebx, (%eax)       # [ESP + 16] = entry_point
+    movl %ebx, (%eax)       # return address para switch_context = entry_point
     
-    # Segundo: ebp (cuarto pop)
+    # Segundo: ebp (quinto pop)
     subl $4, %eax
-    movl $0, (%eax)         # [ESP + 12] = ebp = 0
+    movl $0, (%eax)         # ebp = 0
     
-    # Tercero: ebx (tercer pop)
+    # Tercero: ebx (cuarto pop)
     subl $4, %eax
-    movl $0, (%eax)         # [ESP + 8] = ebx = 0
+    movl $0, (%eax)         # ebx = 0
     
-    # Cuarto: esi (segundo pop)
+    # Cuarto: esi (tercer pop)
     subl $4, %eax
-    movl $0, (%eax)         # [ESP + 4] = esi = 0
+    movl $0, (%eax)         # esi = 0
     
-    # Quinto: edi (primer pop) <- ESP debe apuntar aquí
+    # Quinto: edi (segundo pop)
     subl $4, %eax
-    movl $0, (%eax)         # [ESP + 0] = edi = 0
+    movl $0, (%eax)         # edi = 0
     
-    # EAX ahora apunta a edi, que es donde debe estar ESP
-    # EAX contiene el ESP inicial correcto
+    # Sexto: EFLAGS (primer pop - popf) <- ESP debe apuntar aquí
+    # EFLAGS con interrupciones habilitadas: 0x202 (IF bit set)
+    subl $4, %eax
+    movl $0x202, (%eax)     # EFLAGS = 0x202
+    
+    # EAX ahora apunta a EFLAGS, que es donde debe estar ESP
     ret
 
 /**
