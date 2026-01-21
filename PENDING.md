@@ -288,7 +288,7 @@ Este documento lista todas las funcionalidades pendientes de implementar en NeoO
 
 ---
 
-## 📚 Referencias
+## Referencias
 
 - [docs/Syscalls.md](docs/Syscalls.md) - Documentación de syscalls
 - [ARCHITECTURE.md](ARCHITECTURE.md) - Arquitectura del sistema
