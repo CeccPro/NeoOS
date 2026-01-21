@@ -105,7 +105,7 @@ Este documento lista todas las funcionalidades pendientes de implementar en NeoO
 - **Estado**: No iniciado
 - **Funciones**:
   - `pid_t fork()` - Usando sys_thread_create
-  - `int exec(const char *path)` - Carga de ELF
+  - `int exec(const char *path)` - Carga de ejecutables NEO (formato pendiente de definir)
   - `pid_t run(const char *path, char **argv)` - fork + exec
   - `int kill(pid_t pid)` - Usando sys_signal
   - `int wait(int *status)` - Usando sys_wait
@@ -134,7 +134,7 @@ Este documento lista todas las funcionalidades pendientes de implementar en NeoO
 - **Estado**: No iniciado
 - **Descripción**: Gestor de procesos en userspace
 - **Funciones**:
-  - Carga de binarios ELF
+  - Carga de ejecutables NEO (formato pendiente de definir)
   - Gestión de PIDs
   - Fork/exec avanzado
   - Árbol de procesos
@@ -259,10 +259,11 @@ Este documento lista todas las funcionalidades pendientes de implementar en NeoO
 4. Testing de open/read/write
 
 ### Fase 4: Process Server
-1. Implementar cargador ELF
-2. Implementar exec()
-3. Gestión avanzada de procesos
-4. Testing completo
+1. Diseñar e implementar formato ejecutable NEO
+2. Implementar cargador de ejecutables NEO
+3. Implementar exec()
+4. Gestión avanzada de procesos
+5. Testing completo
 
 ---
 

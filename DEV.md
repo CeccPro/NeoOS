@@ -43,7 +43,6 @@ NeoOS está construido sobre una arquitectura modular que permitirá a los usuar
 9. **IPC Manager**: Sistema de comunicación entre procesos completamente funcional:
    - Message queues por proceso (hasta 32 mensajes de 4KB cada uno)
    - Envío/recepción bloqueante y no bloqueante
-   - Demo Marco-Polo funcionando entre procesos
 
 10. **Syscall Handler**: Dispatcher de syscalls mediante `int 0x80` implementado con 15 syscalls definidas para IPC, scheduler y gestión de memoria.
 
@@ -58,9 +57,9 @@ NeoOS está construido sobre una arquitectura modular que permitirá a los usuar
 
 5. **Libneo (Userspace Library)**: Wrappers de syscalls y funciones estándar para aplicaciones en modo usuario.
 
-2. **Interfaz de Usuario basada en WebView (NeoUI)**: La interfaz de usuario de NeoOS estará construida utilizando tecnologías web modernas a través de WebView. Esto permitirá una experiencia de usuario fluida y adaptable, facilitando la integración de aplicaciones web y servicios en el sistema operativo. Con este enfoque, los desarrolladores podrán crear aplicaciones utilizando HTML, CSS y JavaScript.
+6. **Interfaz de Usuario basada en WebView (NeoUI)**: La interfaz de usuario de NeoOS estará construida utilizando tecnologías web modernas a través de WebView. Esto permitirá una experiencia de usuario fluida y adaptable, facilitando la integración de aplicaciones web y servicios en el sistema operativo. Con este enfoque, los desarrolladores podrán crear aplicaciones utilizando HTML, CSS y JavaScript.
 
-3. **Shell Integrado (NeoSH)**: NeoOS incluirá un shell integrado que permitirá a los usuarios interactuar con el sistema operativo a través de comandos. Se ejecutará directamente como un módulo dentro de NeoCore (similar a Bash en Linux).
+7. **Shell Integrado (NeoSH)**: NeoOS incluirá un shell integrado que permitirá a los usuarios interactuar con el sistema operativo a través de comandos. Se ejecutará directamente como un módulo dentro de NeoCore (similar a Bash en Linux).
 
 ## Tecnologías Utilizadas
 NeoOS utiliza una combinación de tecnologías modernas para garantizar un rendimiento óptimo y una experiencia de usuario excepcional. Algunas de las tecnologías clave incluyen:
@@ -176,11 +175,13 @@ NeoOS/
 - [Pend] = Pendiente de implementación
 - (Sin símbolo) = Planificado pero no iniciado
 
-**Nota**: Los siguientes directorios mencionados en documentación antigua **NO EXISTEN AÚN**:
+**Nota sobre directorios**: Algunas funcionalidades están implementadas dentro de `src/kernel/core/` en lugar de tener directorios separados:
+- IPC está implementado en `src/kernel/core/src/ipc.c` (no en `src/kernel/ipc/`)
+- Syscalls están implementados en `src/kernel/core/src/syscall.c` (no en `src/kernel/syscalls/`)
+
+Los siguientes directorios mencionados en documentación antigua **NO EXISTEN AÚN**:
 - `src/kernel/fs/` - Sistema de archivos
-- `src/kernel/ipc/` - Comunicación entre procesos
 - `src/kernel/modules/` - Gestor de módulos
-- `src/kernel/syscalls/` - Handler de syscalls
 - `src/kernel/utils/` - Utilidades auxiliares
 - `src/ui/` - Interfaz de usuario basada en WebView
 - `src/modules/` - Módulos adicionales del sistema

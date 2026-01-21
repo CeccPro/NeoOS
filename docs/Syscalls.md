@@ -107,7 +107,7 @@ Estas funciones **NO son syscalls** sino wrappers en `libneo.so` que usan las sy
 
 ### Gestión de Procesos (implementadas con sys_thread_create + sys_signal)
 ```c
-pid_t run(const char *path, char *const argv[]);   // Carga ELF y crea proceso
+pid_t run(const char *path, char *const argv[]);   // Carga ejecutable NEO y crea proceso (formato NEO pendiente de definir)
 pid_t clone(int flags, void *stack);                // Fork/clone del proceso actual
 int kill(pid_t pid);                                 // Envía SIGKILL usando sys_signal
 int wait(int *status);                               // Espera usando sys_wait + IPC
@@ -141,7 +141,7 @@ close(fd);                            // IPC a vfs_server
 
 ### ⚙️ Process Server (proc_server)
 Gestiona el ciclo de vida de procesos:
-- Carga de binarios ELF
+- Carga de ejecutables NEO (formato pendiente de definir)
 - Fork/exec
 - Gestión de PIDs
 - Terminación de procesos
