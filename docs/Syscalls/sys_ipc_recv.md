@@ -1,3 +1,26 @@
+# DOCUMENTO OBSOLETO - sys_ipc_recv
+
+**NOTA IMPORTANTE**: Este documento está obsoleto. La syscall se llama simplemente **`sys_recv`**, no `sys_ipc_recv`.
+
+**Por favor, consulte la documentación actualizada en**: [sys_recv.md](sys_recv.md)
+
+---
+
+## Redirección
+La syscall correcta es:
+```c
+int sys_recv(pid_t *src, void *buf, size_t len, int flags);
+```
+
+Para información completa y actualizada, vea:
+- [sys_recv.md](sys_recv.md) - Documentación oficial de la syscall
+- [sys_send.md](sys_send.md) - Envío de mensajes
+- [IPC.md](../IPC.md) - Sistema IPC completo
+
+---
+
+# [DOCUMENTO HISTÓRICO - NO USAR]
+
 # NeoOS - sys_ipc_recv
 La syscall `sys_ipc_recv(ipc_message_t *msg, int flags)` en NeoOS se utiliza para recibir el siguiente mensaje disponible en la cola IPC del proceso. Esta syscall permite que los procesos lean mensajes enviados por otros procesos.
 

@@ -49,6 +49,9 @@ Instrucciones detalladas para la instalación de NeoOS estarán disponibles pró
 ## Licencia
 NeoOS está licenciado bajo la Licencia Pública General GNU v3.0. Consulte el archivo [LICENSE](LICENSE) para más detalles.
 
+## Instrucciones para LLMs
+Este proyecto contiene documentación técnica detallada sobre el diseño y la implementación de NeoOS. Si necesita información específica sobre algún aspecto del sistema operativo, consulte los archivos en la carpeta `docs/`, donde encontrará explicaciones sobre syscalls, IPC, el scheduler de procesos, NeoCore y más. Además, para obtener directivas para modelos de lenguaje grande (LLM) que interactúan con este proyecto, consulte el archivo [LLM_DIRECTIVES.md](LLM_DIRECTIVES.md).
+
 ## Contribuciones
 Por el momento, NeoOS está en desarrollo inicial y no se aceptan contribuciones externas. Sin embargo, se planea abrir el proyecto a la comunidad en el futuro. Manténgase atento a las actualizaciones.
 

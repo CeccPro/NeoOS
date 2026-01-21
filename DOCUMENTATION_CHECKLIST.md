@@ -31,7 +31,7 @@ Este documento contiene una checklist de todos los componentes y aspectos del pr
   - [x] E_NOT_IMPL.md
   - [x] E_UNKNOWN.md
 
-### ❌ Documentación Pendiente
+### Documentación Pendiente
 
 #### Componentes del Núcleo
 - [X] **NeoCore.md** - Documentación detallada del núcleo
@@ -222,7 +222,7 @@ Este documento contiene una checklist de todos los componentes y aspectos del pr
 
 ## Prioridad de Documentación
 
-### 🔴 Alta Prioridad (Crítico para el funcionamiento básico)
+### Alta Prioridad (Crítico para el funcionamiento básico)
 1. Syscalls.md
 2. Boot Process.md
 3. Interrupts.md
@@ -238,7 +238,7 @@ Este documento contiene una checklist de todos los componentes y aspectos del pr
 11. Security.md
 12. Core Modules.md
 
-### 🟢 Baja Prioridad (Complementario)
+### Baja Prioridad (Complementario)
 13. Debugging.md
 14. Testing.md
 15. Networking.md

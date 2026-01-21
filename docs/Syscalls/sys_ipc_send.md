@@ -1,3 +1,26 @@
+# DOCUMENTO OBSOLETO - sys_ipc_send
+
+**NOTA IMPORTANTE**: Este documento está obsoleto. La syscall se llama simplemente **`sys_send`**, no `sys_ipc_send`.
+
+**Por favor, consulte la documentación actualizada en**: [sys_send.md](sys_send.md)
+
+---
+
+## Redirección
+La syscall correcta es:
+```c
+int sys_send(pid_t dest_pid, const void *msg, size_t size, int flags);
+```
+
+Para información completa y actualizada, vea:
+- [sys_send.md](sys_send.md) - Documentación oficial de la syscall
+- [sys_recv.md](sys_recv.md) - Recepción de mensajes
+- [IPC.md](../IPC.md) - Sistema IPC completo
+
+---
+
+# [DOCUMENTO HISTÓRICO - NO USAR]
+
 # NeoOS - sys_ipc_send
 La syscall `sys_ipc_send(int pid, const char *msg, int size)` en NeoOS se utiliza para enviar un mensaje a otro proceso utilizando el mecanismo de comunicación entre procesos (IPC - Inter-Process Communication). Esta syscall permite que los procesos intercambien datos de manera asíncrona.
 

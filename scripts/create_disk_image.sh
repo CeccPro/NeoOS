@@ -47,7 +47,7 @@ if [ -f "$IMG_FILE" ]; then
     if [ $? -eq 0 ]; then
         # Reemplazar kernel
         sudo cp "$KERNEL_ELF" "$MOUNT_POINT/boot/neoos"
-        echo -e "${GREEN}✓ Kernel actualizado: $(ls -lh "$KERNEL_ELF" | awk '{print $5}')${NC}"
+        echo -e "${GREEN}[OK] Kernel actualizado: $(ls -lh "$KERNEL_ELF" | awk '{print $5}')${NC}"
         
         # Comparar grub.cfg
         LOCAL_GRUB="$PROJECT_ROOT/src/kernel/grub.cfg"
@@ -55,17 +55,17 @@ if [ -f "$IMG_FILE" ]; then
         
         if [ -f "$IMG_GRUB" ]; then
             if ! sudo diff -q "$LOCAL_GRUB" "$IMG_GRUB" >/dev/null 2>&1; then
-                echo -e "${YELLOW}⚠ grub.cfg ha cambiado. Actualizando...${NC}"
+                echo -e "${YELLOW}[!] grub.cfg ha cambiado. Actualizando...${NC}"
                 sudo cp "$LOCAL_GRUB" "$IMG_GRUB"
-                echo -e "${GREEN}✓ grub.cfg actualizado${NC}"
+                echo -e "${GREEN}[OK] grub.cfg actualizado${NC}"
             else
-                echo -e "${GREEN}✓ grub.cfg sin cambios${NC}"
+                echo -e "${GREEN}[OK] grub.cfg sin cambios${NC}"
             fi
         else
-            echo -e "${YELLOW}⚠ grub.cfg no encontrado en la imagen. Creando...${NC}"
+            echo -e "${YELLOW}[!] grub.cfg no encontrado en la imagen. Creando...${NC}"
             sudo mkdir -p "$(dirname "$IMG_GRUB")"
             sudo cp "$LOCAL_GRUB" "$IMG_GRUB"
-            echo -e "${GREEN}✓ grub.cfg creado${NC}"
+            echo -e "${GREEN}[OK] grub.cfg creado${NC}"
         fi
         
         # Desmontar
@@ -73,7 +73,7 @@ if [ -f "$IMG_FILE" ]; then
         sudo rmdir "$MOUNT_POINT" 2>/dev/null || true
         sudo losetup -d "$LOOP_DEV"
         
-        echo -e "${GREEN}✓ Actualización completada${NC}"
+        echo -e "${GREEN}[OK] Actualización completada${NC}"
         exit 0
     else
         echo -e "${YELLOW}No se pudo montar la imagen existente. Recreando...${NC}"
@@ -140,7 +140,7 @@ sudo umount "$MOUNT_POINT"
 sudo rmdir "$MOUNT_POINT" 2>/dev/null || true
 sudo losetup -d "$LOOP_DEV"
 
-echo -e "${GREEN}✓ Imagen de disco creada exitosamente: $IMG_FILE${NC}"
+echo -e "${GREEN}[OK] Imagen de disco creada exitosamente: $IMG_FILE${NC}"
 echo -e "${GREEN}  Partición 1: EXT4 (${BOOT_SIZE}MB) - Boot con GRUB y kernel${NC}"
 echo -e "${GREEN}  Partición 2: NeoFS (${NEOFS_SIZE}MB) - Sistema de archivos principal${NC}"
 echo ""

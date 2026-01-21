@@ -425,7 +425,7 @@ Luego ejecuta `cli; hlt` y entra en bucle infinito.
 
 ## Estado Actual de la Implementación
 
-### Componentes Implementados ✅
+### Componentes Implementados
 - GDT con 5 entradas (kernel y usuario)
 - IDT con 256 entradas
 - ISR 0-31 (excepciones del CPU)

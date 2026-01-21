@@ -8,7 +8,7 @@ echo ""
 
 # Verificar que estamos en un sistema basado en Debian/Ubuntu
 if ! command -v apt-get &> /dev/null; then
-    echo "⚠️  Este script está diseñado para sistemas basados en Debian/Ubuntu"
+    echo "[!] Este script está diseñado para sistemas basados en Debian/Ubuntu"
     echo "Para otros sistemas, instala manualmente las siguientes herramientas:"
     echo "  - gcc"
     echo "  - nasm"
@@ -48,59 +48,59 @@ echo "======================================"
 errors=0
 
 if ! command -v gcc &> /dev/null; then
-    echo "❌ gcc no está instalado"
+    echo "[X] gcc no está instalado"
     errors=$((errors + 1))
 else
-    echo "✅ gcc: $(gcc --version | head -n1)"
+    echo "[OK] gcc: $(gcc --version | head -n1)"
 fi
 
 if ! command -v nasm &> /dev/null; then
-    echo "❌ nasm no está instalado"
+    echo "[X] nasm no está instalado"
     errors=$((errors + 1))
 else
-    echo "✅ nasm: $(nasm -v)"
+    echo "[OK] nasm: $(nasm -v)"
 fi
 
 if ! command -v ld &> /dev/null; then
-    echo "❌ ld no está instalado"
+    echo "[X] ld no está instalado"
     errors=$((errors + 1))
 else
-    echo "✅ ld: $(ld --version | head -n1)"
+    echo "[OK] ld: $(ld --version | head -n1)"
 fi
 
 if ! command -v make &> /dev/null; then
-    echo "❌ make no está instalado"
+    echo "[X] make no está instalado"
     errors=$((errors + 1))
 else
-    echo "✅ make: $(make --version | head -n1)"
+    echo "[OK] make: $(make --version | head -n1)"
 fi
 
 if ! command -v grub-mkrescue &> /dev/null; then
-    echo "❌ grub-mkrescue no está instalado"
+    echo "[X] grub-mkrescue no está instalado"
     errors=$((errors + 1))
 else
-    echo "✅ grub-mkrescue está instalado"
+    echo "[OK] grub-mkrescue está instalado"
 fi
 
 if ! command -v xorriso &> /dev/null; then
-    echo "❌ xorriso no está instalado"
+    echo "[X] xorriso no está instalado"
     errors=$((errors + 1))
 else
-    echo "✅ xorriso: $(xorriso --version 2>&1 | head -n1)"
+    echo "[OK] xorriso: $(xorriso --version 2>&1 | head -n1)"
 fi
 
 if ! command -v qemu-system-i386 &> /dev/null; then
-    echo "❌ qemu-system-i386 no está instalado"
+    echo "[X] qemu-system-i386 no está instalado"
     errors=$((errors + 1))
 else
-    echo "✅ qemu-system-i386: $(qemu-system-i386 --version | head -n1)"
+    echo "[OK] qemu-system-i386: $(qemu-system-i386 --version | head -n1)"
 fi
 
 echo ""
 echo "======================================"
 
 if [ $errors -eq 0 ]; then
-    echo "✅ Configuración completada exitosamente!"
+    echo "[OK] Configuración completada exitosamente!"
     echo ""
     echo "Para compilar NeoOS, ejecuta:"
     echo "  cd src/kernel"
@@ -112,7 +112,7 @@ if [ $errors -eq 0 ]; then
     echo "Para ejecutar en QEMU:"
     echo "  make run"
 else
-    echo "❌ Hubo $errors errores durante la configuración"
+    echo "[X] Hubo $errors errores durante la configuración"
     echo "Por favor, revisa los errores anteriores e instala los paquetes faltantes."
 fi
 

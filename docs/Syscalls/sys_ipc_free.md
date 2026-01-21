@@ -1,3 +1,34 @@
+# DOCUMENTO OBSOLETO - sys_ipc_free
+
+**NOTA IMPORTANTE**: `sys_ipc_free` NO es una syscall del kernel. Es una **función auxiliar del kernel** llamada `ipc_free()` que se usa internamente después de `ipc_recv()`.
+
+No existe syscall `sys_ipc_free`. La liberación de mensajes se maneja automáticamente en el kernel.
+
+---
+
+## Función Correcta (Kernel-space)
+```c
+void ipc_free(ipc_message_t* msg);  // Función del kernel, NO syscall
+```
+
+Esta función se usa así:
+```c
+ipc_message_t msg;
+int result = ipc_recv(&msg, IPC_BLOCK);
+if (result == E_OK) {
+    // Procesar mensaje
+    ipc_free(&msg);  // Liberar buffer
+}
+```
+
+Para información completa, vea:
+- [sys_recv.md](sys_recv.md) - Recepción de mensajes (menciona ipc_free)
+- [IPC.md](../IPC.md) - Sistema IPC completo
+
+---
+
+# [DOCUMENTO HISTÓRICO - NO USAR]
+
 # NeoOS - sys_ipc_free
 La syscall `sys_ipc_free(ipc_message_t *msg)` en NeoOS se utiliza para liberar los recursos asociados a un mensaje IPC previamente recibido con `sys_ipc_recv`. Es fundamental llamar a esta syscall para evitar fugas de memoria en el sistema.
 

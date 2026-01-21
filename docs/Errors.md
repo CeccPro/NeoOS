@@ -301,14 +301,14 @@ int complex_operation() {
 
 ## Estado Actual de Implementación
 
-### Componentes que Usan el Sistema de Errores ✅
+### Componentes que Usan el Sistema de Errores (Implementado)
 - `pmm_init()`: Retorna `E_OK` o `E_INVAL`
 - `vmm_init()`: Retorna `E_OK`
 - `heap_init()`: Retorna `E_OK` o `E_NOMEM`
 - `memory_init()`: Coordina y propaga errores de los tres anteriores
 - `error_to_string()`: Convierte códigos a strings
 
-### Uso en Kernel Panic ✅
+### Uso en Kernel Panic (Implementado)
 Cuando ocurre una excepción no manejada, el sistema muestra:
 - Nombre de la excepción
 - Código de error (si aplica)

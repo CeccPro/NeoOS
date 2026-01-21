@@ -26,25 +26,37 @@ NeoOS está construido sobre una arquitectura modular que permitirá a los usuar
 
 6. **Biblioteca Estándar**: Funciones básicas de strings (`memset`, `memcpy`, `strlen`, `strcmp`, `strstr`) y definiciones de tipos básicos.
 
+7. **Sistema de Interrupciones Completo**:
+   - **GDT (Global Descriptor Table)**: Configuración de segmentos de código y datos del kernel (ring 0).
+   - **IDT (Interrupt Descriptor Table)**: Tabla de 256 entradas para ISR/IRQ.
+   - **Manejo de Interrupciones**: ISR 0-31 (excepciones) e IRQ 32-47 (hardware) con handlers personalizables.
+   - **PIC (Programmable Interrupt Controller)**: Remapeo de IRQs para evitar conflictos con excepciones.
+   - **PIT (Programmable Interval Timer)**: Timer configurado a 100Hz para el scheduler.
+
+8. **Process Scheduler**: Planificador Round Robin con prioridades completamente funcional:
+   - 5 niveles de prioridad (IDLE, LOW, NORMAL, HIGH, REALTIME)
+   - Context switching automático vía IRQ0 del timer
+   - PCB (Process Control Block) con gestión completa de estados
+   - Quantum variable según prioridad
+   - Proceso IDLE (PID 1) como fallback
+
+9. **IPC Manager**: Sistema de comunicación entre procesos completamente funcional:
+   - Message queues por proceso (hasta 32 mensajes de 4KB cada uno)
+   - Envío/recepción bloqueante y no bloqueante
+   - Demo Marco-Polo funcionando entre procesos
+
+10. **Syscall Handler**: Dispatcher de syscalls mediante `int 0x80` implementado con 15 syscalls definidas para IPC, scheduler y gestión de memoria.
+
 #### [Pendiente de Implementación]
-1. **NeoCore (Núcleo Semi-Microkernel)**: El diseño conceptual existe pero los componentes core aún no están implementados:
-   - GDT (Global Descriptor Table)
-   - IDT (Interrupt Descriptor Table)
-   - Manejo de interrupciones
-   - PIC (Programmable Interrupt Controller)
-   - Syscall handler
+1. **Module Manager**: Sistema de carga dinámica de módulos con soporte hotplug.
 
-2. **Process Scheduler**: Sistema de planificación de procesos, PCB (Process Control Block), context switching.
+2. **Sistema de Archivos (NeoFS)**: Sistema de archivos virtual y soporte para diferentes filesystems.
 
-3. **IPC Manager**: Comunicación entre procesos, message queues, signals, shared memory.
+3. **Drivers Adicionales**: Teclado, controlador de disco, drivers de red.
 
-4. **Module Manager**: Sistema de carga dinámica de módulos con soporte hotplug.
+4. **Transición a Modo Usuario**: Cambio de ring 0 (kernel) a ring 3 (usuario), TSS, stack de usuario separado.
 
-5. **Sistema de Archivos (NeoFS)**: Sistema de archivos virtual y soporte para diferentes filesystems.
-
-6. **Drivers Adicionales**: Teclado, timer PIT, controlador de disco.
-
-7. **Transición a Modo Usuario**: Cambio de ring 0 (kernel) a ring 3 (usuario), proceso init.
+5. **Libneo (Userspace Library)**: Wrappers de syscalls y funciones estándar para aplicaciones en modo usuario.
 
 2. **Interfaz de Usuario basada en WebView (NeoUI)**: La interfaz de usuario de NeoOS estará construida utilizando tecnologías web modernas a través de WebView. Esto permitirá una experiencia de usuario fluida y adaptable, facilitando la integración de aplicaciones web y servicios en el sistema operativo. Con este enfoque, los desarrolladores podrán crear aplicaciones utilizando HTML, CSS y JavaScript.
 
@@ -91,8 +103,10 @@ NeoOS/
 │   └── kernel/                 # Código del kernel
 │       ├── arch/               # Código específico de arquitectura
 │       │   ├── x86/
-│       │   │   └── boot/
-│       │   │       └── kmain.S # Entry point x86 [Impl]
+│       │   │   ├── boot/
+│       │   │   │   └── kmain.S       # Entry point x86 [Impl]
+│       │   │   ├── context_switch.S  # Context switching [Impl]
+│       │   │   └── isr.S             # ISR/IRQ handlers [Impl]
 │       │   └── arm/
 │       │       └── boot/
 │       │           └── kmain.S # Entry point ARM [Pend]
@@ -100,11 +114,25 @@ NeoOS/
 │       │   ├── src/
 │       │   │   ├── kmain.c     # Función principal [Impl]
 │       │   │   ├── kconfig.c   # Configuración global [Impl]
-│       │   │   └── error.c     # Códigos de error [Impl]
+│       │   │   ├── error.c     # Códigos de error [Impl]
+│       │   │   ├── gdt.c       # Global Descriptor Table [Impl]
+│       │   │   ├── idt.c       # Interrupt Descriptor Table [Impl]
+│       │   │   ├── interrupts.c # Manejo de interrupciones [Impl]
+│       │   │   ├── timer.c     # PIT Timer [Impl]
+│       │   │   ├── scheduler.c # Process Scheduler [Impl]
+│       │   │   ├── ipc.c       # IPC Manager [Impl]
+│       │   │   └── syscall.c   # Syscall Dispatcher [Impl]
 │       │   └── include/
 │       │       ├── kmain.h
 │       │       ├── kconfig.h
-│       │       └── error.h
+│       │       ├── error.h
+│       │       ├── gdt.h
+│       │       ├── idt.h
+│       │       ├── interrupts.h
+│       │       ├── timer.h
+│       │       ├── scheduler.h
+│       │       ├── ipc.h
+│       │       └── syscall.h
 │       ├── drivers/            # Drivers de hardware
 │       │   ├── src/
 │       │   │   └── vga.c       # Driver VGA [Impl]

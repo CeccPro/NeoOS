@@ -6,24 +6,24 @@ Este documento lista todas las funcionalidades pendientes de implementar en NeoO
 
 ---
 
-## 🔴 Prioridad ALTA (Bloqueantes)
+## Prioridad ALTA (Bloqueantes)
 
 ### Syscalls - Funcionalidad Básica Faltante
 
 #### SYS_CALL (RPC síncrono)
-- **Estado**: ❌ No implementado
+- **Estado**: No implementado
 - **Descripción**: Send + Recv atómico para llamadas RPC
 - **Bloqueante**: No
 - **Notas**: Útil para comunicación cliente-servidor
 
 #### SYS_SIGNAL (Señales)
-- **Estado**: ❌ No implementado
+- **Estado**: No implementado
 - **Descripción**: Sistema de señales básico (SIGKILL, SIGTERM, etc.)
 - **Bloqueante**: Sí (necesario para kill())
 - **Dependencias**: Necesita tabla de handlers en PCB
 
 #### SYS_WAIT (Eventos)
-- **Estado**: ❌ No implementado
+- **Estado**: No implementado
 - **Descripción**: Esperar eventos con event mask y timeout
 - **Bloqueante**: Sí (necesario para waitpid())
 - **Dependencias**: Sistema de eventos en scheduler
@@ -31,7 +31,7 @@ Este documento lista todas las funcionalidades pendientes de implementar en NeoO
 ### Memory Management - Userspace
 
 #### SYS_MAP (Mapeo de memoria)
-- **Estado**: ❌ No implementado
+- **Estado**: No implementado
 - **Descripción**: Mapear páginas en espacio de direcciones del proceso
 - **Bloqueante**: Sí (necesario para malloc en userspace)
 - **Notas**: Backend VMM existe, falta wrapper para userspace
@@ -43,13 +43,13 @@ Este documento lista todas las funcionalidades pendientes de implementar en NeoO
   ```
 
 #### SYS_UNMAP (Desmapeo)
-- **Estado**: ❌ No implementado
+- **Estado**: No implementado
 - **Descripción**: Desmapear región de memoria
 - **Bloqueante**: Sí
 - **Dependencias**: SYS_MAP
 
 #### SYS_GRANT (Memoria compartida)
-- **Estado**: ❌ No implementado
+- **Estado**: No implementado
 - **Descripción**: Compartir región de memoria con otro proceso
 - **Bloqueante**: No (útil pero no crítico)
 - **Notas**: Para SHM eficiente entre procesos
@@ -57,44 +57,44 @@ Este documento lista todas las funcionalidades pendientes de implementar en NeoO
 ### Modo Usuario
 
 #### Segmentos de Usuario en GDT
-- **Estado**: ❌ No implementado
+- **Estado**: No implementado
 - **Descripción**: Agregar segmentos ring 3 a la GDT
 - **Bloqueante**: Sí (necesario para modo usuario)
 - **Archivo**: `src/kernel/core/src/gdt.c`
 
 #### TSS (Task State Segment)
-- **Estado**: ❌ No implementado
+- **Estado**: No implementado
 - **Descripción**: Configurar TSS para cambio de privilegios
 - **Bloqueante**: Sí
 - **Notas**: Necesario para int 0x80 desde ring 3
 
 #### Cambio a Ring 3
-- **Estado**: ❌ No implementado
+- **Estado**: No implementado
 - **Descripción**: Función para ejecutar código en modo usuario
 - **Bloqueante**: Sí
 - **Implementación**: iret con CS/SS de usuario
 
 ---
 
-## 🟡 Prioridad MEDIA (Funcionalidad Core)
+## Prioridad MEDIA (Funcionalidad Core)
 
 ### Sistema de Información
 
 #### SYS_GETINFO - INFO_UPTIME
-- **Estado**: ⚠️ Parcialmente implementado
+- **Estado**: Parcialmente implementado
 - **Descripción**: Retorna 0 (placeholder)
 - **Necesita**: Contador de ticks en timer.c
 - **Archivo**: `src/kernel/core/src/timer.c`
 
 #### SYS_GETINFO - INFO_TIME
-- **Estado**: ❌ No implementado
+- **Estado**: No implementado
 - **Descripción**: Timestamp actual
 - **Necesita**: Driver RTC (Real-Time Clock)
 
 ### Libneo (Librería Userspace)
 
 #### Wrapper Syscalls Básicos
-- **Estado**: ❌ No iniciado
+- **Estado**: No iniciado
 - **Descripción**: Crear libneo.so con wrappers de syscalls
 - **Incluye**:
   - Wrapper amigable para cada syscall
@@ -102,7 +102,7 @@ Este documento lista todas las funcionalidades pendientes de implementar en NeoO
   - Documentación de API
 
 #### Funciones de Gestión de Procesos
-- **Estado**: ❌ No iniciado
+- **Estado**: No iniciado
 - **Funciones**:
   - `pid_t fork()` - Usando sys_thread_create
   - `int exec(const char *path)` - Carga de ELF
@@ -111,7 +111,7 @@ Este documento lista todas las funcionalidades pendientes de implementar en NeoO
   - `int wait(int *status)` - Usando sys_wait
 
 #### Gestión de Heap (malloc/free)
-- **Estado**: ❌ No iniciado
+- **Estado**: No iniciado
 - **Funciones**:
   - `void *malloc(size_t size)` - Usando sys_map
   - `void free(void *ptr)` - Usando sys_unmap
@@ -122,7 +122,7 @@ Este documento lista todas las funcionalidades pendientes de implementar en NeoO
 ### Servidores Userspace
 
 #### VFS Server (Sistema de Archivos)
-- **Estado**: ❌ No iniciado
+- **Estado**: No iniciado
 - **Descripción**: Servidor de filesystem en userspace
 - **Funciones**:
   - `open()`, `read()`, `write()`, `close()`
@@ -131,7 +131,7 @@ Este documento lista todas las funcionalidades pendientes de implementar en NeoO
 - **Comunicación**: IPC con aplicaciones
 
 #### Process Server
-- **Estado**: ❌ No iniciado
+- **Estado**: No iniciado
 - **Descripción**: Gestor de procesos en userspace
 - **Funciones**:
   - Carga de binarios ELF
@@ -141,7 +141,7 @@ Este documento lista todas las funcionalidades pendientes de implementar en NeoO
 - **Comunicación**: IPC
 
 #### Device Manager
-- **Estado**: ❌ No iniciado
+- **Estado**: No iniciado
 - **Descripción**: Gestor de drivers en userspace
 - **Funciones**:
   - Registro de drivers
@@ -151,33 +151,33 @@ Este documento lista todas las funcionalidades pendientes de implementar en NeoO
 
 ---
 
-## 🟢 Prioridad BAJA (Mejoras y Optimizaciones)
+## Prioridad BAJA (Mejoras y Optimizaciones)
 
 ### Drivers
 
 #### Keyboard Driver
-- **Estado**: ❌ No implementado
+- **Estado**: No implementado
 - **Archivo**: `src/kernel/drivers/keyboard.c`
 - **Notas**: Debería moverse a userspace eventualmente
 
 #### Mouse Driver (PS/2)
-- **Estado**: ❌ No implementado
+- **Estado**: No implementado
 - **Prioridad**: Baja
 
 #### RTC (Real-Time Clock)
-- **Estado**: ❌ No implementado
+- **Estado**: No implementado
 - **Necesario para**: sys_getinfo(INFO_TIME)
 
 ### Filesystem
 
 #### RAM Disk
-- **Estado**: ❌ No implementado
+- **Estado**: No implementado
 - **Descripción**: Disco en memoria para initrd
 - **Prioridad**: Media
 - **Notas**: Útil para boot temprano
 
 #### NeoFS (Filesystem Nativo)
-- **Estado**: ❌ No diseñado
+- **Estado**: No diseñado
 - **Descripción**: Filesystem propio de NeoOS
 - **Prioridad**: Baja
 - **Alternativa**: Usar ext2/FAT32 inicialmente
@@ -185,23 +185,23 @@ Este documento lista todas las funcionalidades pendientes de implementar en NeoO
 ### Optimizaciones
 
 #### Copy-on-Write (COW) para fork()
-- **Estado**: ❌ No implementado
+- **Estado**: No implementado
 - **Descripción**: No copiar toda la memoria en fork()
 - **Beneficio**: Performance
 
 #### Lazy Allocation de Memoria
-- **Estado**: ❌ No implementado
+- **Estado**: No implementado
 - **Descripción**: No asignar páginas hasta primer acceso
 
 #### Cache de Pages
-- **Estado**: ❌ No implementado
+- **Estado**: No implementado
 - **Descripción**: Pool de páginas pre-asignadas
 
 ---
 
-## 📊 Estado Actual del Proyecto
+## Estado Actual del Proyecto
 
-### ✅ Completado
+### Completado
 
 - [x] Memory Manager (PMM, VMM, Heap)
 - [x] Sistema de Interrupciones (GDT, IDT, PIC, PIT)
@@ -219,13 +219,13 @@ Este documento lista todas las funcionalidades pendientes de implementar en NeoO
   - [x] SYS_GETINFO (PID, MEMORY)
   - [x] SYS_DEBUG
 
-### ⏳ En Progreso
+### En Progreso
 
 - [ ] Transición a modo usuario
 - [ ] Sistema de señales básico
 - [ ] Gestión de memoria para userspace
 
-### ❌ Pendiente
+### Pendiente
 
 - [ ] Syscalls faltantes (SYS_CALL, SYS_SIGNAL, SYS_WAIT, SYS_MAP, etc.)
 - [ ] Libneo (librería userspace)
@@ -235,10 +235,10 @@ Este documento lista todas las funcionalidades pendientes de implementar en NeoO
 
 ---
 
-## 🎯 Roadmap Sugerido
+## Roadmap Sugerido
 
 ### Fase 1: Modo Usuario Funcional
-1. ✅ ~~Syscall dispatcher~~
+1. [Completado] Syscall dispatcher
 2. Agregar segmentos ring 3 a GDT
 3. Implementar TSS
 4. Crear proceso de prueba en ring 3
@@ -266,7 +266,7 @@ Este documento lista todas las funcionalidades pendientes de implementar en NeoO
 
 ---
 
-## 📝 Notas de Desarrollo
+## Notas de Desarrollo
 
 ### Consideraciones de Diseño
 

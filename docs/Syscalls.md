@@ -11,10 +11,10 @@ NeoOS implementa un diseño de **microkernel minimalista** donde solo las operac
 - Seguridad por reducción de superficie de ataque
 
 **Ventajas:**
-- 🛡️ **Seguridad**: Menos código en kernel = menos vulnerabilidades
-- 🔄 **Modularidad**: Componentes reemplazables sin reiniciar
-- 🐛 **Debugging**: Los servidores crashean sin afectar el kernel
-- 🔧 **Flexibilidad**: Cambiar políticas sin recompilar el kernel
+- **Seguridad**: Menos código en kernel = menos vulnerabilidades
+- **Modularidad**: Componentes reemplazables sin reiniciar
+- **Debugging**: Los servidores crashean sin afectar el kernel
+- **Flexibilidad**: Cambiar políticas sin recompilar el kernel
 
 ---
 
@@ -42,7 +42,7 @@ asm volatile(
 
 ## Syscalls del Kernel (~15 syscalls)
 
-### 📨 IPC / Comunicación (ipc.h)
+### IPC / Comunicación (ipc.h)
 Las syscalls más importantes del microkernel. Todo el resto del sistema se construye sobre IPC.
 
 | # | Syscall | Descripción |
@@ -56,7 +56,7 @@ Las syscalls más importantes del microkernel. Todo el resto del sistema se cons
 - `IPC_BLOCK` (0x00): Bloquea hasta recibir mensaje
 - `IPC_NONBLOCKING` (0x01): Retorna inmediatamente si no hay mensajes
 
-### 🧵 Scheduler / Threads (scheduler.h)
+### Scheduler / Threads (scheduler.h)
 
 | # | Syscall | Descripción |
 |---|---------|-------------|
@@ -74,7 +74,7 @@ Las syscalls más importantes del microkernel. Todo el resto del sistema se cons
 - `PROCESS_PRIORITY_HIGH` (3): Alta prioridad
 - `PROCESS_PRIORITY_REALTIME` (4): Tiempo real
 
-### 🗺️ Memory Management (memory.h)
+### Memory Management (memory.h)
 
 | # | Syscall | Descripción |
 |---|---------|-------------|
@@ -87,7 +87,7 @@ Las syscalls más importantes del microkernel. Todo el resto del sistema se cons
 - `PAGE_WRITE`: Página escribible
 - `PAGE_USER`: Accesible desde modo usuario
 
-### ℹ️ Sistema (kmain.h)
+### Sistema (kmain.h)
 
 | # | Syscall | Descripción |
 |---|---------|-------------|
@@ -146,7 +146,7 @@ Gestiona el ciclo de vida de procesos:
 - Gestión de PIDs
 - Terminación de procesos
 
-### 🔧 Device Manager (dev_server)
+### Device Manager (dev_server)
 Gestiona drivers y dispositivos:
 - Mapeo de IRQs usando `sys_wait`
 - Acceso a puertos I/O (con permisos)

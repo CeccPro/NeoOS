@@ -103,7 +103,7 @@
 4. kernel_main() [src/kernel/core/src/kmain.c]
    │
    ├── Inicializa VGA Terminal (modo texto 80x25)
-   ├── Parsea cmdline (--debug, --verbose)
+   ├── Parsea cmdline (--debug, --verbose, --no-subsystems)
    ├── Inicializa kconfig (configuración global)
    ├── Verifica Multiboot Magic (0x2BADB002)
    ├── Muestra banner de bienvenida (si verbose)
@@ -199,7 +199,22 @@
        └── 5 rounds de comunicación IPC
    │
    ▼
-10. Transferencia de Control al Scheduler [IMPLEMENTADO]
+10. Inicialización de Syscalls [IMPLEMENTADO]
+    │
+    ├── Instala handler para int 0x80
+    ├── Configura IDT entrada 128 (0x80)
+    └── Proporciona 15 syscalls del microkernel
+    │
+    ▼
+11. Demo Marco-Polo [IMPLEMENTADO]
+    │
+    ├── Crea proceso Marco (PID 2)
+    ├── Crea proceso Polo (PID 3)
+    ├── Ejecuta 5 rondas de comunicación IPC
+    └── Demuestra funcionalidad completa de IPC
+    │
+    ▼
+12. Transferencia de Control al Scheduler [IMPLEMENTADO]
     │
     ├── scheduler_switch() nunca retorna
     ├── Sistema ejecuta procesos en Round Robin
@@ -208,49 +223,43 @@
 
 === ESTADO ACTUAL ===
 El kernel está funcional con:
-✅ Memory Manager (PMM, VMM, Heap)
-✅ Sistema de interrupciones (GDT, IDT, PIC, PIT)
-✅ Scheduler multitarea con prioridades
-✅ IPC completamente funcional
-✅ Demo Marco-Polo funcionando
+- Memory Manager (PMM, VMM, Heap)
+- Sistema de interrupciones (GDT, IDT, PIC, PIT)
+- Scheduler multitarea con prioridades
+- IPC completamente funcional
+- Syscall Handler (int 0x80)
+- Demo Marco-Polo funcionando
 
 [EJECUTANDO PROCESOS EN MODO KERNEL]
 
 
 === PENDIENTES DE IMPLEMENTACIÓN ===
 
-11. Syscall Dispatcher [PENDIENTE]
-    │
-    ├── Implementar handler para int 0x80
-    ├── Tabla de syscalls (15 syscalls minimalistas)
-    ├── Validación de parámetros
-    └── Retorno de errores (E_OK, E_INVAL, etc.)
-
-12. Transición a Modo Usuario [PENDIENTE]
+13. Transición a Modo Usuario [PENDIENTE]
     │
     ├── Configurar segmentos de usuario en GDT
     ├── TSS (Task State Segment)
     ├── Cambio de ring 0 → ring 3
     └── Stack de usuario separado
 
-13. Libneo (Librería en Userspace) [PENDIENTE]
+14. Libneo (Librería en Userspace) [PENDIENTE]
     │
     ├── Wrappers de syscalls
     ├── Funciones estándar: run(), clone(), kill()
     ├── Gestión de heap: malloc(), free(), sbrk()
     └── Compatibilidad POSIX básica
 
-14. Servidores en Userspace [PENDIENTE]
+15. Servidores en Userspace [PENDIENTE]
     │
     ├── VFS Server: Gestión de archivos
     ├── Process Server: Fork, exec, gestión de PIDs
     └── Device Manager: Drivers en userspace
 
-15. Module Manager [FUTURO]
+16. Module Manager [FUTURO]
     │
     └── Sistema de carga dinámica de módulos
 
-16. Sistema de Archivos (NeoFS) [FUTURO]
+17. Sistema de Archivos (NeoFS) [FUTURO]
     │
     └── Implementado como VFS Server en userspace
 ```
@@ -275,6 +284,7 @@ El kernel está funcional con:
 - `core/src/timer.c` - Programmable Interval Timer [Implementado]
 - `core/src/scheduler.c` - Planificador de procesos [Implementado]
 - `core/src/ipc.c` - Sistema de mensajería [Implementado]
+- `core/src/syscall.c` - Syscall Dispatcher [Implementado]
 - `core/include/kmain.h` - Definiciones del kernel main [Implementado]
 - `core/include/kconfig.h` - Variables de configuración [Implementado]
 - `core/include/error.h` - Códigos de error del sistema [Implementado]
@@ -284,6 +294,7 @@ El kernel está funcional con:
 - `core/include/timer.h` - API del timer [Implementado]
 - `core/include/scheduler.h` - API del scheduler [Implementado]
 - `core/include/ipc.h` - API de IPC [Implementado]
+- `core/include/syscall.h` - API de Syscalls [Implementado]
 
 #### Arquitectura (arch/) - [IMPLEMENTADO]
 - `arch/x86/boot/kmain.S` - Entry point en Assembly [Implementado]
@@ -309,9 +320,10 @@ El kernel está funcional con:
 - `memory/include/memory.h` - API completa del Memory Manager [Implementado]
 
 #### Subsistemas Pendientes
-- `syscalls/` - Syscall dispatcher (int 0x80) [PENDIENTE]
 - `modules/` - Module Manager [FUTURO]
 - `fs/` - Sistema de archivos [FUTURO - Mover a userspace]
+- Modo Usuario (ring 3) [PENDIENTE]
+- Libneo (userspace library) [PENDIENTE]
 
 #### Otros
 - `linker.ld` - Linker script [Implementado]
@@ -320,7 +332,7 @@ El kernel está funcional con:
 
 ## Syscalls de NeoOS (Microkernel - 15 syscalls)
 
-**NOTA**: Las syscalls están definidas en la documentación pero el **dispatcher aún no está implementado**.
+**NOTA**: El dispatcher de syscalls mediante `int 0x80` está **IMPLEMENTADO y FUNCIONAL** en `src/kernel/core/src/syscall.c`.
 
 ### IPC/Comunicación (4 syscalls)
 - `SYS_SEND` (0) - Enviar mensaje IPC
@@ -365,7 +377,6 @@ Definidos en `src/kernel/core/include/error.h` e implementados en `src/kernel/co
 - `E_TIMEOUT` (-9) - Timeout
 - `E_MODULE_ERR` (-10) - Error de módulo
 - `E_NOT_IMPL` (-11) - No implementado
-- `E_NOT_SUPPORTED` (-12) - No soportado
 - `E_NOT_SUPPORTED` (-12) - No soportado
 
 La función `error_to_string(int error)` convierte códigos de error a sus nombres como strings.
