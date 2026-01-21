@@ -1,72 +1,239 @@
-# NeoOS - Syscalls
-El sistema de llamadas al sistema (syscalls) en NeoOS es un componente fundamental que permite a los procesos en modo usuario interactuar con el núcleo del sistema operativo. A través de las syscalls, los procesos pueden solicitar servicios del kernel, como la gestión de memoria, la comunicación entre procesos, la gestión de archivos y dispositivos, entre otros. Las syscalls de NeoOS no son syscalls standard POSIX, pero ofrecen funcionalidades similares adaptadas a las necesidades específicas del sistema operativo.
+# NeoOS - Syscalls (Microkernel Architecture)
+
+NeoOS implementa un diseño de **microkernel minimalista** donde solo las operaciones críticas residen en el kernel. El resto de funcionalidades (filesystem, gestión avanzada de procesos, drivers) se implementan como **servidores en modo usuario** que se comunican mediante IPC.
+
+## Filosofía de Diseño
+
+**En un microkernel:**
+- El kernel solo proporciona mecanismos, no políticas
+- Todo lo que pueda ejecutarse en modo usuario, debe hacerlo
+- IPC eficiente es la piedra angular del sistema
+- Seguridad por reducción de superficie de ataque
+
+**Ventajas:**
+- 🛡️ **Seguridad**: Menos código en kernel = menos vulnerabilidades
+- 🔄 **Modularidad**: Componentes reemplazables sin reiniciar
+- 🐛 **Debugging**: Los servidores crashean sin afectar el kernel
+- 🔧 **Flexibilidad**: Cambiar políticas sin recompilar el kernel
+
+---
 
 ## Mecanismo de Syscalls
-Cuando un proceso en modo usuario necesita realizar una operación que requiere privilegios del kernel, realiza una syscall. Este proceso implica los siguientes pasos:
-1. El proceso coloca los parámetros necesarios para la syscall en registros específicos.
-2. El proceso ejecuta una instrucción especial que provoca una interrupción o excepción, transfiriendo el control al kernel.
-3. El kernel identifica la syscall solicitada y ejecuta la función correspondiente.
-4. Una vez completada la operación, el kernel devuelve el control al proceso en modo usuario, junto con cualquier valor de retorno necesario.
 
-## Lista de Syscalls Disponibles
-A continuación se presenta una lista de las syscalls más comunes disponibles en NeoOS:
+Las syscalls en NeoOS se invocan mediante la instrucción `int 0x80` (x86) o equivalente según arquitectura:
 
-### Gestión de Procesos
-01. [`sys_exit(int status)`](./Syscalls/sys_exit.md): Termina el proceso actual con el estado especificado.
-02. [`sys_run(const char *path, char *const argv[])`](./Syscalls/sys_run.md): Crea y ejecuta un nuevo proceso.
-03. [`sys_wait(int *status)`](./Syscalls/sys_wait.md): Espera a que un proceso hijo termine y obtiene su estado de salida.
-04. [`sys_clone(char *const argv[], int flags, void *stack)`](./Syscalls/sys_clone.md): Crea un nuevo proceso duplicando el proceso actual.
-05. [`sys_kill(int pid)`](./Syscalls/sys_kill.md): Envía una señal para terminar el proceso con el ID especificado.
-06. [`sys_getpid()`](./Syscalls/sys_getpid.md): Devuelve el ID del proceso actual.
-07. [`sys_yield()`](./Syscalls/sys_yield.md): Cede el control del CPU al scheduler para permitir que otros procesos se ejecuten.
-08. [`sys_sleep(int ticks)`](./Syscalls/sys_sleep.md): Suspende la ejecución del proceso actual durante un número especificado de ticks del reloj.
-09. [`sys_uptime()`](./Syscalls/sys_uptime.md): Devuelve el tiempo total que el sistema ha estado en funcionamiento desde el último arranque.
+1. El proceso coloca el **número de syscall** en `EAX`
+2. Los **parámetros** van en `EBX, ECX, EDX, ESI, EDI` (hasta 5 parámetros)
+3. Se ejecuta `int 0x80` → transfer al kernel
+4. El kernel verifica permisos, ejecuta la operación y retorna
+5. El **valor de retorno** se devuelve en `EAX`
 
-### Gestión de Archivos
-10. [`sys_open(const char *filename, int mode)`](./Syscalls/sys_open.md): Abre un archivo con el nombre y modo especificados.
-11. [`sys_read(int fd, void *buf, int count)`](./Syscalls/sys_read.md): Lee datos desde un archivo abierto en el descriptor de archivo especificado.
-12. [`sys_write(int fd, const void *buf, int count)`](./Syscalls/sys_write.md): Escribe datos en un archivo abierto en el descriptor de archivo especificado.
-13. [`sys_close(int fd)`](./Syscalls/sys_close.md): Cierra un archivo abierto en el descriptor de archivo especificado.
-
-### Gestión de Memoria
-14. [`sys_mmap(int fd, int offset, int size)`](./Syscalls/sys_mmap.md): Mapea un archivo en memoria virtual del proceso.
-15. [`sys_munmap(void *addr, int size)`](./Syscalls/sys_munmap.md): Desmapea una región de memoria previamente mapeada.
-16. [`sys_sbrk(int increment)`](./Syscalls/sys_sbrk.md): Extiende o contrae el heap del proceso.
-
-### Sistema de Archivos
-17. [`sys_chdir(const char *path)`](./Syscalls/sys_chdir.md): Cambia el directorio de trabajo actual del proceso.
-18. [`sys_mkdir(const char *path)`](./Syscalls/sys_mkdir.md): Crea un nuevo directorio.
-19. [`sys_rmdir(const char *path)`](./Syscalls/sys_rmdir.md): Elimina un directorio existente.
-20. [`sys_unlink(const char *path)`](./Syscalls/sys_unlink.md): Elimina un archivo.
-21. [`sys_stat(const char *path, struct stat *buf)`](./Syscalls/sys_stat.md): Obtiene información sobre un archivo o directorio.
-
-### Señales y Tiempo
-22. [`sys_signal(int sig, void (*handler)(int))`](./Syscalls/sys_signal.md): Registra un manejador para una señal específica.
-23. [`sys_gettime(struct timespec *ts)`](./Syscalls/sys_gettime.md): Obtiene la hora actual del sistema con precisión.
-
-### Prioridad de Procesos
-24. [`sys_setpriority(int pid, int priority)`](./Syscalls/sys_setpriority.md): Establece la prioridad de un proceso.
-25. [`sys_getpriority(int pid)`](./Syscalls/sys_getpriority.md): Obtiene la prioridad de un proceso.
-
-### Comunicación Entre Procesos (IPC)
-26. [`sys_ipc_send(int pid, const char *msg, int size)`](./Syscalls/sys_ipc_send.md): Envía un mensaje a otro proceso.
-27. [`sys_ipc_recv(ipc_message_t *msg, int flags)`](./Syscalls/sys_ipc_recv.md): Recibe el siguiente mensaje disponible en la cola IPC del proceso.
-28. [`sys_ipc_free(ipc_message_t *msg)`](./Syscalls/sys_ipc_free.md): Libera los recursos asociados a un mensaje IPC.
-
-Para más detalles sobre cada syscall, incluyendo sus parámetros y valores de retorno, consulte la documentación específica haciendo clic en los enlaces anteriores.
-
-## Cómo Usar las Syscalls
-Para utilizar las syscalls en NeoOS, los desarrolladores deben incluir el archivo de encabezado correspondiente y llamar a las funciones de syscall con los parámetros adecuados. Es importante manejar correctamente los valores de retorno para detectar y gestionar errores. Aquí hay un ejemplo básico de cómo utilizar una syscall para abrir un archivo:
 ```c
-#include <syscalls.h>
-int fd = sys_open("mi_archivo.txt", O_RDONLY);
-if (fd < 0) {
-    // Manejar error
-} else {
-    // Leer o escribir en el archivo
-    sys_close(fd);
+// Ejemplo: sys_send(dest_pid, buffer, size, flags)
+int result;
+asm volatile(
+    "int $0x80"
+    : "=a"(result)
+    : "a"(SYSCALL_SEND), "b"(dest_pid), "c"(buffer), "d"(size), "S"(flags)
+);
+```
+
+---
+
+## Syscalls del Kernel (~15 syscalls)
+
+### 📨 IPC / Comunicación (ipc.h)
+Las syscalls más importantes del microkernel. Todo el resto del sistema se construye sobre IPC.
+
+| # | Syscall | Descripción |
+|---|---------|-------------|
+| 1 | `sys_send(pid_t dest, void *msg, size_t len, int flags)` | Envía un mensaje a otro proceso |
+| 2 | `sys_recv(pid_t *src, void *buf, size_t len, int flags)` | Recibe un mensaje (bloqueante o no bloqueante) |
+| 3 | `sys_call(pid_t dest, void *req, void *resp, size_t len)` | RPC: send + recv atómico |
+| 4 | `sys_signal(pid_t pid, int sig)` | Envía una señal a un proceso |
+
+**Flags soportados:**
+- `IPC_BLOCK` (0x00): Bloquea hasta recibir mensaje
+- `IPC_NONBLOCKING` (0x01): Retorna inmediatamente si no hay mensajes
+
+### 🧵 Scheduler / Threads (scheduler.h)
+
+| # | Syscall | Descripción |
+|---|---------|-------------|
+| 5 | `sys_thread_create(void *entry, void *stack, int flags)` | Crea un nuevo thread/proceso |
+| 6 | `sys_thread_exit(int status)` | Termina el thread actual |
+| 7 | `sys_yield()` | Cede voluntariamente la CPU |
+| 8 | `sys_setpriority(pid_t pid, int priority)` | Establece prioridad de un proceso |
+| 9 | `sys_getpriority(pid_t pid)` | Obtiene prioridad de un proceso |
+| 10 | `sys_wait(int *event_mask, timeout_t timeout)` | Espera eventos/IRQs |
+
+**Prioridades:**
+- `PROCESS_PRIORITY_IDLE` (0): Proceso idle
+- `PROCESS_PRIORITY_LOW` (1): Baja prioridad
+- `PROCESS_PRIORITY_NORMAL` (2): Normal (por defecto)
+- `PROCESS_PRIORITY_HIGH` (3): Alta prioridad
+- `PROCESS_PRIORITY_REALTIME` (4): Tiempo real
+
+### 🗺️ Memory Management (memory.h)
+
+| # | Syscall | Descripción |
+|---|---------|-------------|
+| 11 | `sys_map(void *addr, size_t len, int prot, int flags)` | Mapea memoria en el espacio de direcciones |
+| 12 | `sys_unmap(void *addr, size_t len)` | Desmapea región de memoria |
+| 13 | `sys_grant(pid_t dest, void *addr, size_t len, int prot)` | Comparte memoria con otro proceso |
+
+**Flags de protección:**
+- `PAGE_PRESENT`: Página presente en memoria
+- `PAGE_WRITE`: Página escribible
+- `PAGE_USER`: Accesible desde modo usuario
+
+### ℹ️ Sistema (kmain.h)
+
+| # | Syscall | Descripción |
+|---|---------|-------------|
+| 14 | `sys_getinfo(int type, void *buf)` | Obtiene información del sistema (PID, tiempo, etc.) |
+| 15 | `sys_debug(const char *msg)` | Imprime mensaje de debug (solo en builds debug) |
+
+**Tipos de info:**
+- `INFO_PID`: PID del proceso actual
+- `INFO_UPTIME`: Tiempo desde el boot
+- `INFO_MEMORY`: Estadísticas de memoria
+
+---
+
+## Funciones en Userspace (libneo)
+
+Estas funciones **NO son syscalls** sino wrappers en `libneo.so` que usan las syscalls básicas:
+
+### Gestión de Procesos (implementadas con sys_thread_create + sys_signal)
+```c
+pid_t run(const char *path, char *const argv[]);   // Carga ELF y crea proceso
+pid_t clone(int flags, void *stack);                // Fork/clone del proceso actual
+int kill(pid_t pid);                                 // Envía SIGKILL usando sys_signal
+int wait(int *status);                               // Espera usando sys_wait + IPC
+```
+
+### Gestión de Memoria (implementadas con sys_map/sys_unmap)
+```c
+void *sbrk(intptr_t increment);  // Gestión de heap usando sys_map/sys_unmap
+void *malloc(size_t size);        // Asignación dinámica en heap
+void free(void *ptr);             // Liberación de memoria
+```
+
+---
+
+## Servidores en Userspace
+
+### 📁 VFS Server (vfs_server)
+Maneja el sistema de archivos. Recibe peticiones vía IPC:
+
+```c
+// Aplicación en userspace:
+int fd = open("file.txt", O_RDONLY);  // libneo envía mensaje IPC a vfs_server
+read(fd, buf, 100);                   // IPC a vfs_server
+close(fd);                            // IPC a vfs_server
+```
+
+**Operaciones soportadas:**
+- `open, read, write, close`
+- `mkdir, rmdir, unlink, stat`
+- `chdir, getcwd`
+
+### ⚙️ Process Server (proc_server)
+Gestiona el ciclo de vida de procesos:
+- Carga de binarios ELF
+- Fork/exec
+- Gestión de PIDs
+- Terminación de procesos
+
+### 🔧 Device Manager (dev_server)
+Gestiona drivers y dispositivos:
+- Mapeo de IRQs usando `sys_wait`
+- Acceso a puertos I/O (con permisos)
+- Hot-plug de dispositivos
+
+---
+
+## Ejemplos de Uso
+
+### Enviar un mensaje IPC
+```c
+#include <neoos/ipc.h>
+
+const char *msg = "Hola, servidor!";
+int result = sys_send(server_pid, msg, strlen(msg) + 1, IPC_BLOCK);
+if (result == E_OK) {
+    printf("Mensaje enviado correctamente\n");
 }
 ```
 
+### Crear un thread
+```c
+#include <neoos/scheduler.h>
+
+void thread_func(void) {
+    printf("Thread iniciado\n");
+    sys_thread_exit(0);
+}
+
+uint8_t stack[4096] __attribute__((aligned(16)));
+pid_t thread_pid = sys_thread_create(thread_func, &stack[4096], 0);
+```
+
+### Mapear memoria compartida
+```c
+#include <neoos/memory.h>
+
+// Proceso A: crea región compartida
+void *shared = sys_map(NULL, 4096, PAGE_PRESENT | PAGE_WRITE | PAGE_USER, 0);
+sys_grant(process_b_pid, shared, 4096, PAGE_WRITE);
+
+// Proceso B: accede a la región
+// (la región ya está mapeada gracias a sys_grant)
+strcpy(shared, "Datos compartidos");
+```
+
+---
+
+## Estado de Implementación
+
+| Componente | Estado | Notas |
+|------------|--------|-------|
+| IPC (send/recv/free) | ✅ Implementado | Funcionando con demo Marco-Polo |
+| Scheduler (create/exit/yield) | ✅ Implementado | Round-robin con prioridades |
+| Memory (PMM/VMM/Heap) | ✅ Implementado | Paginación activa |
+| Priority syscalls | ✅ Implementado | 5 niveles de prioridad |
+| Syscall dispatcher | ⏳ Pendiente | Necesita implementar int 0x80 |
+| sys_map/unmap/grant | ⏳ Pendiente | API de VMM disponible |
+| sys_wait (eventos) | ⏳ Pendiente | Para IRQs y sincronización |
+| libneo (userspace) | ❌ No iniciado | Wrappers y libc básica |
+| VFS Server | ❌ No iniciado | Servidor de archivos |
+| Process Server | ❌ No iniciado | Gestor de procesos |
+
+---
+
+## Comparación con Otros Sistemas
+
+| Sistema | # Syscalls | Filosofía |
+|---------|-----------|-----------|
+| **NeoOS** | ~15 | Microkernel puro |
+| seL4 | 10 | Microkernel verificado formalmente |
+| L4 | 7 | Microkernel minimalista |
+| Minix 3 | ~50 | Microkernel modular |
+| Linux | ~400 | Kernel monolítico |
+
+---
+
 ## Conclusión
-Las syscalls de NeoOS proporcionan una interfaz esencial para que los procesos en modo usuario interactúen con el kernel del sistema operativo. Al comprender y utilizar estas syscalls de manera efectiva, los desarrolladores pueden crear aplicaciones robustas y eficientes que aprovechen al máximo las capacidades del sistema operativo NeoOS.
+
+El diseño minimalista de syscalls en NeoOS permite:
+- **Kernel pequeño y verificable**: Menos código = menos bugs
+- **Flexibilidad máxima**: Políticas en userspace
+- **Mejor seguridad**: Aislamiento de componentes
+- **Desarrollo ágil**: Servidores reemplazables sin recompilar kernel
+
+Para detalles de implementación, consulte:
+- [ARCHITECTURE.md](../ARCHITECTURE.md) - Arquitectura general del sistema
+- [IPC.md](./IPC.md) - Detalles del sistema de mensajería
+- [Scheduler.md](./Process%20Scheduler.md) - Planificador de procesos
+- [Memory Manager.md](./Memory%20Manager.md) - Gestión de memoria

@@ -128,38 +128,131 @@
        └── Proporciona kmalloc/kfree
    │
    ▼
-6. Bucle Infinito (hlt) [ESTADO ACTUAL]
+6. Inicialización del Sistema de Interrupciones [IMPLEMENTADO]
+   │
+   ├── GDT (Global Descriptor Table)
+   │   ├── Segmento de código del kernel (ring 0)
+   │   ├── Segmento de datos del kernel (ring 0)
+   │   ├── Segmento de código de usuario (ring 3) [pendiente]
+   │   └── Segmento de datos de usuario (ring 3) [pendiente]
+   │
+   ├── IDT (Interrupt Descriptor Table)
+   │   ├── 256 entradas de interrupciones
+   │   ├── ISR (Interrupt Service Routines) 0-31
+   │   └── IRQ (Hardware Interrupts) 32-47
+   │
+   ├── PIC (Programmable Interrupt Controller)
+   │   ├── Remapeo de IRQs (evitar conflicto con excepciones)
+   │   ├── IRQ0-15 → IDT 32-47
+   │   └── Máscaras de interrupciones
+   │
+   └── Habilita interrupciones (STI)
+   │
+   ▼
+7. Inicialización del PIT (Timer) [IMPLEMENTADO]
+   │
+   ├── Frecuencia: 100 Hz (configurable)
+   ├── Genera IRQ0 cada 10ms
+   └── Utilizado por el scheduler para preemption
+   │
+   ▼
+8. Inicialización del Scheduler [IMPLEMENTADO]
+   │
+   ├── Crea proceso IDLE (PID 1)
+   │   ├── Prioridad: PROCESS_PRIORITY_IDLE
+   │   └── Ejecuta HLT en loop infinito
+   │
+   ├── Algoritmo: Round Robin con prioridades
+   │   ├── 5 niveles de prioridad (IDLE, LOW, NORMAL, HIGH, REALTIME)
+   │   ├── Quantum por prioridad (10ms - 100ms)
+   │   └── Context switching automático por IRQ0
+   │
+   ├── PCB (Process Control Block)
+   │   ├── PID, nombre, estado, prioridad
+   │   ├── Contexto CPU (ESP, EBP, EIP, EFLAGS, etc.)
+   │   ├── Cola IPC integrada
+   │   └── Información de memoria
+   │
+   └── Funciones disponibles:
+       ├── scheduler_create_process()
+       ├── scheduler_terminate_process()
+       ├── scheduler_yield()
+       ├── scheduler_set_priority()
+       └── scheduler_block/unblock_process()
+   │
+   ▼
+9. Inicialización del IPC [IMPLEMENTADO]
+   │
+   ├── Sistema de mensajería asíncrona
+   │   ├── Tamaño máximo de mensaje: 4KB
+   │   ├── Cola por proceso: hasta 32 mensajes
+   │   └── Modo bloqueante y no bloqueante
+   │
+   ├── Funciones implementadas:
+   │   ├── ipc_send(dest_pid, msg, size)
+   │   ├── ipc_recv(msg, flags)
+   │   └── ipc_free(msg)
+   │
+   └── Demo funcional: Marco-Polo
+       ├── Proceso Marco (PID 2) envía "Marco"
+       ├── Proceso Polo (PID 3) responde "Polo"
+       └── 5 rounds de comunicación IPC
+   │
+   ▼
+10. Transferencia de Control al Scheduler [IMPLEMENTADO]
+    │
+    ├── scheduler_switch() nunca retorna
+    ├── Sistema ejecuta procesos en Round Robin
+    └── Preemption automática cada 10ms (IRQ0)
+
+
+=== ESTADO ACTUAL ===
+El kernel está funcional con:
+✅ Memory Manager (PMM, VMM, Heap)
+✅ Sistema de interrupciones (GDT, IDT, PIC, PIT)
+✅ Scheduler multitarea con prioridades
+✅ IPC completamente funcional
+✅ Demo Marco-Polo funcionando
+
+[EJECUTANDO PROCESOS EN MODO KERNEL]
 
 
 === PENDIENTES DE IMPLEMENTACIÓN ===
 
-7. GDT, IDT, Interrupciones [PENDIENTE]
-   │
-   ├── Inicializa GDT (Global Descriptor Table)
-   ├── Inicializa IDT (Interrupt Descriptor Table)
-   ├── Configura PIC (Programmable Interrupt Controller)
-   ├── Inicializa timer PIT (Programmable Interval Timer)
-   └── Habilita interrupciones
-
-8. Process Scheduler [PENDIENTE]
-   │
-   ├── Crea proceso IDLE (PID 0)
-   └── Prepara estructuras de procesos
-
-9. IPC Manager [PENDIENTE]
-   │
-   └── Inicializa colas de mensajes
-
-10. Module Manager [PENDIENTE]
+11. Syscall Dispatcher [PENDIENTE]
     │
-    └── Sistema de carga dinámica de módulos
-
-11. Sistema de Archivos (NeoFS) [PENDIENTE]
+    ├── Implementar handler para int 0x80
+    ├── Tabla de syscalls (15 syscalls minimalistas)
+    ├── Validación de parámetros
+    └── Retorno de errores (E_OK, E_INVAL, etc.)
 
 12. Transición a Modo Usuario [PENDIENTE]
     │
-    └── Inicia proceso init (PID 1)
-        └── Shell/UI
+    ├── Configurar segmentos de usuario en GDT
+    ├── TSS (Task State Segment)
+    ├── Cambio de ring 0 → ring 3
+    └── Stack de usuario separado
+
+13. Libneo (Librería en Userspace) [PENDIENTE]
+    │
+    ├── Wrappers de syscalls
+    ├── Funciones estándar: run(), clone(), kill()
+    ├── Gestión de heap: malloc(), free(), sbrk()
+    └── Compatibilidad POSIX básica
+
+14. Servidores en Userspace [PENDIENTE]
+    │
+    ├── VFS Server: Gestión de archivos
+    ├── Process Server: Fork, exec, gestión de PIDs
+    └── Device Manager: Drivers en userspace
+
+15. Module Manager [FUTURO]
+    │
+    └── Sistema de carga dinámica de módulos
+
+16. Sistema de Archivos (NeoFS) [FUTURO]
+    │
+    └── Implementado como VFS Server en userspace
 ```
 
 ## Estructura de Archivos Detallada
@@ -172,21 +265,37 @@
 - `arch/x86/boot/kmain.S` - Entry point en Assembly [Implementado]
 - `arch/arm/boot/kmain.S` - Entry point ARM [Pendiente]
 
-#### Core (core/)
+#### Core (core/) - [IMPLEMENTADO]
 - `core/src/kmain.c` - Función principal del kernel [Implementado]
 - `core/src/kconfig.c` - Configuración global del kernel [Implementado]
 - `core/src/error.c` - Conversión de códigos de error a strings [Implementado]
+- `core/src/gdt.c` - Global Descriptor Table [Implementado]
+- `core/src/idt.c` - Interrupt Descriptor Table [Implementado]
+- `core/src/interrupts.c` - Manejo de ISR/IRQ [Implementado]
+- `core/src/timer.c` - Programmable Interval Timer [Implementado]
+- `core/src/scheduler.c` - Planificador de procesos [Implementado]
+- `core/src/ipc.c` - Sistema de mensajería [Implementado]
 - `core/include/kmain.h` - Definiciones del kernel main [Implementado]
 - `core/include/kconfig.h` - Variables de configuración [Implementado]
 - `core/include/error.h` - Códigos de error del sistema [Implementado]
+- `core/include/gdt.h` - API de GDT [Implementado]
+- `core/include/idt.h` - API de IDT [Implementado]
+- `core/include/interrupts.h` - API de interrupciones [Implementado]
+- `core/include/timer.h` - API del timer [Implementado]
+- `core/include/scheduler.h` - API del scheduler [Implementado]
+- `core/include/ipc.h` - API de IPC [Implementado]
 
-#### Drivers (drivers/)
+#### Arquitectura (arch/) - [IMPLEMENTADO]
+- `arch/x86/boot/kmain.S` - Entry point en Assembly [Implementado]
+- `arch/x86/context_switch.S` - Context switching [Implementado]
+- `arch/x86/isr.S` - ISR/IRQ handlers [Implementado]
+- `arch/arm/boot/kmain.S` - Entry point ARM [Pendiente]
+
+#### Drivers (drivers/) - [IMPLEMENTADO]
 - `drivers/src/vga.c` - Terminal VGA en modo texto 80x25 [Implementado]
 - `drivers/include/vga.h` - API del driver VGA [Implementado]
-- `drivers/keyboard.c` - Driver de teclado [Pendiente]
-- `drivers/timer.c` - Driver de timer PIT [Pendiente]
 
-#### Librería (lib/)
+#### Librería (lib/) - [IMPLEMENTADO]
 - `lib/src/string.c` - Funciones de strings [Implementado]
 - `lib/include/string.h` - API de strings [Implementado]
 - `lib/include/types.h` - Tipos básicos del sistema [Implementado]
@@ -200,63 +309,45 @@
 - `memory/include/memory.h` - API completa del Memory Manager [Implementado]
 
 #### Subsistemas Pendientes
-- `scheduler/` - Process Scheduler [NO EXISTE AÚN]
-- `ipc/` - IPC Manager [NO EXISTE AÚN]
-- `modules/` - Module Manager [NO EXISTE AÚN]
-- `fs/` - Sistema de archivos [NO EXISTE AÚN]
-- `syscalls/` - Syscall handler [NO EXISTE AÚN]
+- `syscalls/` - Syscall dispatcher (int 0x80) [PENDIENTE]
+- `modules/` - Module Manager [FUTURO]
+- `fs/` - Sistema de archivos [FUTURO - Mover a userspace]
 
 #### Otros
 - `linker.ld` - Linker script [Implementado]
 - `grub.cfg` - Configuración de GRUB [Implementado]
 - `Makefile` - Build system del kernel [Implementado]
 
-## Syscalls Definidas (29 total) - [PENDIENTE DE IMPLEMENTACIÓN]
+## Syscalls de NeoOS (Microkernel - 15 syscalls)
 
-**NOTA**: Las syscalls están definidas conceptualmente en la documentación, pero **NO están implementadas** en el código actual. El handler de syscalls y el mecanismo de invocación aún no existen.
+**NOTA**: Las syscalls están definidas en la documentación pero el **dispatcher aún no está implementado**.
 
-### Gestión de Procesos
-- `SYS_EXIT` (0) - Terminar proceso
-- `SYS_GETPID` (5) - Obtener PID
-- `SYS_FORK` (6) - Fork/Clone proceso
-- `SYS_YIELD` (7) - Ceder CPU
-- `SYS_SLEEP` (8) - Dormir proceso
-- `SYS_KILL` (19) - Terminar otro proceso
-- `SYS_WAIT` (20) - Esperar por proceso hijo
-- `SYS_CLONE` (21) - Clonar proceso
-- `SYS_RUN` (22) - Ejecutar programa
-- `SYS_SIGNAL` (23) - Enviar señal
+### IPC/Comunicación (4 syscalls)
+- `SYS_SEND` (0) - Enviar mensaje IPC
+- `SYS_RECV` (1) - Recibir mensaje IPC
+- `SYS_CALL` (2) - RPC: send+recv atómico
+- `SYS_SIGNAL` (3) - Enviar señal a proceso
 
-### Memoria
-- `SYS_MMAP` (11) - Mapear memoria
-- `SYS_MUNMAP` (12) - Desmapear memoria
-- `SYS_SBRK` (13) - Ajustar heap
+### Scheduler/Threads (6 syscalls)
+- `SYS_THREAD_CREATE` (4) - Crear thread/proceso
+- `SYS_THREAD_EXIT` (5) - Terminar thread actual
+- `SYS_YIELD` (6) - Ceder CPU voluntariamente
+- `SYS_SETPRIORITY` (7) - Establecer prioridad
+- `SYS_GETPRIORITY` (8) - Obtener prioridad
+- `SYS_WAIT` (9) - Esperar eventos/IRQs
 
-### IPC
-- `SYS_IPC_SEND` (14) - Enviar mensaje
-- `SYS_IPC_RECV` (15) - Recibir mensaje
-- `SYS_IPC_FREE` (16) - Liberar mensaje
+### Memory Management (3 syscalls)
+- `SYS_MAP` (10) - Mapear memoria
+- `SYS_UNMAP` (11) - Desmapear memoria
+- `SYS_GRANT` (12) - Compartir memoria con otro proceso
 
-### Prioridad
-- `SYS_SETPRIORITY` (17) - Establecer prioridad
-- `SYS_GETPRIORITY` (18) - Obtener prioridad
+### Sistema (2 syscalls)
+- `SYS_GETINFO` (13) - Obtener info del sistema (PID, tiempo, etc.)
+- `SYS_DEBUG` (14) - Imprimir debug (solo builds debug)
 
-### Tiempo
-- `SYS_GETTIME` (9) - Obtener tiempo actual
-- `SYS_UPTIME` (10) - Tiempo de actividad del sistema
+**El resto de funcionalidad (filesystem, fork/exec, drivers) se implementa en userspace** mediante servidores que se comunican con IPC.
 
-### Archivos
-- `SYS_READ` (1) - Leer archivo
-- `SYS_WRITE` (2) - Escribir archivo
-- `SYS_OPEN` (3) - Abrir archivo
-- `SYS_CLOSE` (4) - Cerrar archivo
-- `SYS_STAT` (24) - Información de archivo
-- `SYS_UNLINK` (28) - Eliminar archivo
-
-### Directorios
-- `SYS_MKDIR` (25) - Crear directorio
-- `SYS_RMDIR` (26) - Eliminar directorio
-- `SYS_CHDIR` (27) - Cambiar directorio
+Ver [docs/Syscalls.md](docs/Syscalls.md) para detalles completos.
 
 ## Códigos de Error - [IMPLEMENTADOS]
 
@@ -274,6 +365,7 @@ Definidos en `src/kernel/core/include/error.h` e implementados en `src/kernel/co
 - `E_TIMEOUT` (-9) - Timeout
 - `E_MODULE_ERR` (-10) - Error de módulo
 - `E_NOT_IMPL` (-11) - No implementado
+- `E_NOT_SUPPORTED` (-12) - No soportado
 - `E_NOT_SUPPORTED` (-12) - No soportado
 
 La función `error_to_string(int error)` convierte códigos de error a sus nombres como strings.

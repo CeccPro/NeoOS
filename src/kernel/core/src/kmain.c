@@ -371,6 +371,8 @@ void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
     vga_write("Iniciando juego de Marco-Polo usando IPC...\n\n");
 
     // TODO: Inicializar subsistemas adicionales del kernel:
+    // - Syscalls
+    // - RAM Disk
     // - Sistema de archivos
     // - Module Manager
 
