@@ -54,7 +54,7 @@ typedef struct {
  * Inicializa el sistema IPC
  * @return E_OK en caso de éxito, código de error en caso contrario
  */
-int ipc_init(void);
+int ipc_init(bool kverbose);
 
 /**
  * Inicializa la cola de mensajes de un proceso

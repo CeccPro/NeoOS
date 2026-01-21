@@ -28,4 +28,10 @@
  */
  const char* error_to_string(int error);
 
+/**
+ * Genera un kernel panic con un mensaje de error
+ * @param msg Mensaje de error
+ */
+void panic(const char* msg);
+
 #endif /* _KERNEL_ERROR_H */

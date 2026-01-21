@@ -126,6 +126,56 @@ IRQ 14, 46   # Primary ATA Hard Disk
 IRQ 15, 47   # Secondary ATA Hard Disk
 
 # ==============================================================================
+# ISR 128: Syscall Handler (int 0x80)
+# ==============================================================================
+.global isr128
+isr128:
+    cli                     # Deshabilitar interrupciones
+    pushl $0                # Código de error dummy
+    pushl $128              # Número de interrupción
+    jmp syscall_stub        # Saltar al stub de syscall
+
+# ==============================================================================
+# Stub para Syscalls
+# Debe crear la estructura registers_t en el stack
+# ==============================================================================
+syscall_stub:
+    # En este punto el stack tiene:
+    # [ss, useresp, eflags, cs, eip, err_code(0), int_no(128)] ← tope
+    
+    # Guardar el segmento de datos
+    pushl %ds
+    
+    # Guardar registros generales
+    pushal                  # Pushea EAX, ECX, EDX, EBX, ESP, EBP, ESI, EDI
+    
+    # Ahora el stack coincide con registers_t:
+    # [ss, useresp, eflags, cs, eip, err_code, int_no, ds, eax, ecx, edx, ebx, esp, ebp, esi, edi]
+    
+    # Cargar el segmento de datos del kernel
+    movw $0x10, %ax         # GDT_KERNEL_DATA_SEGMENT = 0x10
+    movw %ax, %ds
+    movw %ax, %es
+    movw %ax, %fs
+    movw %ax, %gs
+    
+    # Llamar al handler de syscalls en C
+    # ESP apunta a la estructura registers_t completa
+    pushl %esp
+    call syscall_handler_wrapper
+    addl $4, %esp
+    
+    # Restaurar el estado del CPU
+    popal                   # Pop EDI, ESI, EBP, ESP, EBX, EDX, ECX, EAX
+    popl %ds
+    
+    # Limpiar err_code e int_no
+    addl $8, %esp
+    
+    # Retornar de la interrupción (pop eip, cs, eflags, esp, ss)
+    iret
+
+# ==============================================================================
 # Stub común para ISR
 # ==============================================================================
 isr_common_stub:

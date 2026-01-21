@@ -32,9 +32,9 @@ if [ ! -f "$KERNEL_ELF" ]; then
     exit 1
 fi
 
-# Si la imagen ya existe, solo actualizar el kernel
+# Si la imagen ya existe, solo actualizar el kernel y grub.cfg si es necesario
 if [ -f "$IMG_FILE" ]; then
-    echo -e "${YELLOW}Imagen existente detectada. Actualizando solo el kernel...${NC}"
+    echo -e "${YELLOW}Imagen existente detectada. Actualizando kernel y grub.cfg si es necesario...${NC}"
     
     # Configurar dispositivo loop
     LOOP_DEV=$(sudo losetup -f --show -P "$IMG_FILE")
@@ -48,6 +48,25 @@ if [ -f "$IMG_FILE" ]; then
         # Reemplazar kernel
         sudo cp "$KERNEL_ELF" "$MOUNT_POINT/boot/neoos"
         echo -e "${GREEN}✓ Kernel actualizado: $(ls -lh "$KERNEL_ELF" | awk '{print $5}')${NC}"
+        
+        # Comparar grub.cfg
+        LOCAL_GRUB="$PROJECT_ROOT/src/kernel/grub.cfg"
+        IMG_GRUB="$MOUNT_POINT/boot/grub/grub.cfg"
+        
+        if [ -f "$IMG_GRUB" ]; then
+            if ! sudo diff -q "$LOCAL_GRUB" "$IMG_GRUB" >/dev/null 2>&1; then
+                echo -e "${YELLOW}⚠ grub.cfg ha cambiado. Actualizando...${NC}"
+                sudo cp "$LOCAL_GRUB" "$IMG_GRUB"
+                echo -e "${GREEN}✓ grub.cfg actualizado${NC}"
+            else
+                echo -e "${GREEN}✓ grub.cfg sin cambios${NC}"
+            fi
+        else
+            echo -e "${YELLOW}⚠ grub.cfg no encontrado en la imagen. Creando...${NC}"
+            sudo mkdir -p "$(dirname "$IMG_GRUB")"
+            sudo cp "$LOCAL_GRUB" "$IMG_GRUB"
+            echo -e "${GREEN}✓ grub.cfg creado${NC}"
+        fi
         
         # Desmontar
         sudo umount "$MOUNT_POINT"

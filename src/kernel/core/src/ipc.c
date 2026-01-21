@@ -16,14 +16,16 @@ static bool ipc_initialized = false;
 /**
  * Inicializa el sistema IPC
  */
-int ipc_init(void) {
+int ipc_init(bool kverbose) {
     if (ipc_initialized) {
         return E_OK;
     }
 
     ipc_initialized = true;
-    vga_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
-    vga_write("[IPC] Sistema IPC inicializado\n");
+    if (kverbose) {
+        vga_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
+        vga_write("[IPC] Sistema IPC inicializado\n");
+    }
     return E_OK;
 }
 

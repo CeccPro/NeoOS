@@ -10,13 +10,22 @@
 
 /**
  * Estructura de los registros guardados durante una interrupción
- * Esta estructura se empuja en el stack antes de llamar al handler
+ * Esta estructura debe coincidir EXACTAMENTE con el orden del stack
+ * 
+ * Orden del stack (de tope a fondo):
+ * 1. CPU pushea automáticamente: SS, USERESP, EFLAGS, CS, EIP
+ * 2. ISR stub pushea: err_code, int_no
+ * 3. Stub manual pushea: DS
+ * 4. pushal pushea: EAX, ECX, EDX, EBX, ESP, EBP, ESI, EDI
+ * 
+ * El stack crece hacia ABAJO, así que el orden en la estructura
+ * (leyendo desde el tope) es el REVERSO del orden de push
  */
 struct registers {
-    uint32_t ds;                                     // Segmento de datos
-    uint32_t edi, esi, ebp, esp, ebx, edx, ecx, eax; // Registros generales (pusha)
-    uint32_t int_no, err_code;                       // Número de interrupción y código de error
-    uint32_t eip, cs, eflags, useresp, ss;          // Empujado automáticamente por el CPU
+    uint32_t edi, esi, ebp, esp, ebx, edx, ecx, eax; // pushal (último push)
+    uint32_t ds;                                      // push ds
+    uint32_t int_no, err_code;                        // push int_no/err_code
+    uint32_t eip, cs, eflags, useresp, ss;           // CPU (primer push)
 } __attribute__((packed));
 
 typedef struct registers registers_t;
