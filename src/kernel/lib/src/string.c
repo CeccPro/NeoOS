@@ -225,3 +225,48 @@ char* strstr(const char* haystack, const char* needle) {
     }
     return NULL;
 }
+
+/**
+ * Convierte un entero a cadena en la base especificada
+ */
+char* itoa(int value, char* str, int base) {
+    if (base < 2 || base > 36) {
+        str[0] = '\0';
+        return str;
+    }
+    
+    char* ptr = str;
+    char* ptr1 = str;
+    char tmp_char;
+    int tmp_value;
+    
+    // Manejar valor negativo para base 10
+    int is_negative = 0;
+    if (value < 0 && base == 10) {
+        is_negative = 1;
+        value = -value;
+    }
+    
+    // Convertir número a cadena (en reversa)
+    do {
+        tmp_value = value;
+        value /= base;
+        *ptr++ = "0123456789abcdefghijklmnopqrstuvwxyz"[tmp_value - value * base];
+    } while (value);
+    
+    // Agregar signo negativo si es necesario
+    if (is_negative) {
+        *ptr++ = '-';
+    }
+    
+    *ptr-- = '\0';
+    
+    // Revertir la cadena
+    while (ptr1 < ptr) {
+        tmp_char = *ptr;
+        *ptr-- = *ptr1;
+        *ptr1++ = tmp_char;
+    }
+    
+    return str;
+}

@@ -99,6 +99,39 @@ Las syscalls más importantes del microkernel. Todo el resto del sistema se cons
 - `INFO_UPTIME`: Tiempo desde el boot
 - `INFO_MEMORY`: Estadísticas de memoria
 
+### Module Manager (module.h)
+
+| # | Syscall | Descripción |
+|---|---------|-------------|
+| 16 | `sys_modload(const char *name)` | Carga un módulo en el sistema |
+| 17 | `sys_modunload(mid_t mid)` | Descarga un módulo del sistema |
+| 18 | `sys_modstart(mid_t mid)` | Inicia un módulo cargado |
+| 19 | `sys_modstop(mid_t mid)` | Detiene un módulo en ejecución |
+| 20 | `sys_modstatus(mid_t mid)` | Obtiene el estado de un módulo |
+
+**Estados de módulo:**
+- `MODULE_STATE_UNLOADED` (0): No cargado
+- `MODULE_STATE_LOADING` (1): En proceso de carga
+- `MODULE_STATE_LOADED` (2): Cargado pero no iniciado
+- `MODULE_STATE_RUNNING` (3): En ejecución
+- `MODULE_STATE_STOPPED` (4): Detenido
+- `MODULE_STATE_UNLOADING` (5): En proceso de descarga
+
+### Module IPC (module.h)
+
+| # | Syscall | Descripción |
+|---|---------|-------------|
+| 21 | `sys_modsend(mid_t mid, void *msg, size_t size)` | Envía mensaje a un módulo por MID |
+| 22 | `sys_modsend_name(const char *name, void *msg, size_t size)` | Envía mensaje a un módulo por nombre |
+| 23 | `sys_modcall(mid_t mid, void *req, size_t req_sz, void *resp, size_t *resp_sz)` | RPC: petición-respuesta a módulo |
+| 24 | `sys_modgetid(const char *name)` | Obtiene el MID de un módulo por nombre |
+
+**Características:**
+- Los módulos tienen colas IPC independientes de los procesos
+- `sys_modsend` envía mensajes asíncronos a la cola del módulo
+- `sys_modcall` ejecuta petición-respuesta síncrona (RPC)
+- Los MID (Module ID) son diferentes de los PID (Process ID)
+
 ---
 
 ## Funciones en Userspace (libneo)
@@ -193,6 +226,70 @@ sys_grant(process_b_pid, shared, 4096, PAGE_WRITE);
 strcpy(shared, "Datos compartidos");
 ```
 
+### Gestionar módulos del kernel
+```c
+#include <neoos/module.h>
+
+// Cargar un módulo
+mid_t mid = sys_modload("driver_network");
+if (mid > 0) {
+    printf("Módulo cargado con MID: %d\n", mid);
+    
+    // Iniciar el módulo
+    int result = sys_modstart(mid);
+    if (result == E_OK) {
+        printf("Módulo iniciado correctamente\n");
+    }
+    
+    // Verificar estado
+    int state = sys_modstatus(mid);
+    if (state == MODULE_STATE_RUNNING) {
+        printf("Módulo en ejecución\n");
+    }
+    
+    // Detener y descargar
+    sys_modstop(mid);
+    sys_modunload(mid);
+}
+```
+
+### Comunicarse con módulos por IPC
+```c
+#include <neoos/module.h>
+#include <neoos/ramdisk.h>
+
+// Obtener MID del ramdisk por nombre
+mid_t ramdisk_mid = sys_modgetid("ramdisk");
+if (ramdisk_mid > 0) {
+    // Preparar petición para leer información
+    ramdisk_request_t req;
+    req.command = RAMDISK_CMD_GETINFO;
+    
+    // Buffer para respuesta
+    uint8_t resp_buffer[sizeof(ramdisk_response_t) + 8];
+    size_t resp_size = sizeof(resp_buffer);
+    
+    // Llamar al módulo (RPC)
+    int result = sys_modcall(ramdisk_mid, &req, sizeof(req), resp_buffer, &resp_size);
+    
+    if (result == E_OK) {
+        ramdisk_response_t* resp = (ramdisk_response_t*)resp_buffer;
+        uint32_t* info = (uint32_t*)resp->data;
+        printf("Ramdisk: %d KB, %d sectores\n", info[0]/1024, info[1]);
+    }
+}
+```
+
+### Enviar mensaje asíncrono a módulo
+```c
+// Enviar mensaje sin esperar respuesta
+char msg[] = "Hola módulo!";
+int result = sys_modsend_name("mi_modulo", msg, sizeof(msg));
+if (result == E_OK) {
+    printf("Mensaje enviado a la cola del módulo\n");
+}
+```
+
 ---
 
 ## Estado de Implementación
@@ -203,7 +300,9 @@ strcpy(shared, "Datos compartidos");
 | Scheduler (create/exit/yield) | ✅ Implementado | Round-robin con prioridades |
 | Memory (PMM/VMM/Heap) | ✅ Implementado | Paginación activa |
 | Priority syscalls | ✅ Implementado | 5 niveles de prioridad |
-| Syscall dispatcher | ⏳ Pendiente | Necesita implementar int 0x80 |
+| Module Manager | ✅ Implementado | Carga/descarga dinámica de módulos |
+| Module IPC | ✅ Implementado | Comunicación con módulos por IPC |
+| Syscall dispatcher | ✅ Implementado | Handler en int 0x80 |
 | sys_map/unmap/grant | ⏳ Pendiente | API de VMM disponible |
 | sys_wait (eventos) | ⏳ Pendiente | Para IRQs y sincronización |
 | libneo (userspace) | ❌ No iniciado | Wrappers y libc básica |
@@ -216,7 +315,7 @@ strcpy(shared, "Datos compartidos");
 
 | Sistema | # Syscalls | Filosofía |
 |---------|-----------|-----------|
-| **NeoOS** | ~15 | Microkernel puro |
+| **NeoOS** | 24 | Microkernel puro con módulos dinámicos e IPC |
 | seL4 | 10 | Microkernel verificado formalmente |
 | L4 | 7 | Microkernel minimalista |
 | Minix 3 | ~50 | Microkernel modular |

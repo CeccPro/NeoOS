@@ -79,4 +79,9 @@ char* strrchr(const char* s, int c);
  */
 char* strstr(const char* haystack, const char* needle);
 
+/**
+ * Convierte un entero a cadena en la base especificada
+ */
+char* itoa(int value, char* str, int base);
+
 #endif /* _KERNEL_STRING_H */

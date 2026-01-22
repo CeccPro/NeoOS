@@ -9,6 +9,7 @@
 #include "../include/interrupts.h"
 #include "../include/scheduler.h"
 #include "../include/ipc.h"
+#include "../include/module.h"
 #include "../../memory/include/memory.h"
 #include "../../drivers/include/vga.h"
 
@@ -156,6 +157,74 @@ int syscall_dispatch(uint32_t syscall_num, uint32_t arg1, uint32_t arg2, uint32_
             #endif
             
             return E_OK;
+        }
+        
+        // ===== Module Manager =====
+        case SYS_MODLOAD: {
+            const char *name = (const char*)arg1;
+            if (!name) return E_INVAL;
+            return module_load(name);
+        }
+        
+        case SYS_MODUNLOAD: {
+            mid_t mid = (mid_t)arg1;
+            return module_unload(mid);
+        }
+        
+        case SYS_MODSTART: {
+            mid_t mid = (mid_t)arg1;
+            return module_start(mid);
+        }
+        
+        case SYS_MODSTOP: {
+            mid_t mid = (mid_t)arg1;
+            return module_stop(mid);
+        }
+        
+        case SYS_MODSTATUS: {
+            mid_t mid = (mid_t)arg1;
+            return module_get_state(mid);
+        }
+        
+        // ===== Module IPC =====
+        case SYS_MODSEND: {
+            mid_t mid = (mid_t)arg1;
+            const void* msg = (const void*)arg2;
+            size_t size = (size_t)arg3;
+            
+            if (!msg || size == 0) return E_INVAL;
+            
+            return module_send(mid, msg, size);
+        }
+        
+        case SYS_MODSEND_NAME: {
+            const char* name = (const char*)arg1;
+            const void* msg = (const void*)arg2;
+            size_t size = (size_t)arg3;
+            
+            if (!name || !msg || size == 0) return E_INVAL;
+            
+            return module_send_by_name(name, msg, size);
+        }
+        
+        case SYS_MODCALL: {
+            mid_t mid = (mid_t)arg1;
+            const void* request = (const void*)arg2;
+            size_t request_size = (size_t)arg3;
+            void* response = (void*)arg4;
+            size_t* response_size = (size_t*)arg5;
+            
+            if (!request || request_size == 0) return E_INVAL;
+            if (!response || !response_size) return E_INVAL;
+            
+            return module_call(mid, request, request_size, response, response_size);
+        }
+        
+        case SYS_MODGETID: {
+            const char* name = (const char*)arg1;
+            if (!name) return E_INVAL;
+            
+            return module_get_id(name);
         }
         
         default:

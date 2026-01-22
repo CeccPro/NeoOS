@@ -12,9 +12,11 @@
 #include "../../core/include/scheduler.h"
 #include "../../core/include/ipc.h"
 #include "../../core/include/syscall.h"
+#include "../../core/include/module.h"
 #include "../../memory/include/memory.h"
 #include "../../drivers/include/vga.h"
-#include "../../lib/include/string.h"   
+#include "../../lib/include/string.h"
+#include "../../modules/include/ramdisk.h"   
 
 // Símbolo proporcionado por el linker script
 extern uint32_t __kernel_end;
@@ -134,6 +136,7 @@ void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
         vga_set_color(VGA_COLOR_LIGHT_BROWN, VGA_COLOR_BLACK);
         vga_write("Modo sin subsistemas activado. El kernel se detendra aqui.\n");
         while (1) {
+            __asm__ volatile("cli"); // Deshabilitar interrupciones
             __asm__ volatile("hlt");
         }
     }
@@ -245,11 +248,66 @@ void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
         vga_write("== Syscalls inicializados ==\n");
     }
 
+    // Inicializar Module Manager
+    if (kverbose) {
+        vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
+        vga_write("\n== Inicializando Module Manager ==\n");
+    }
+    int module_result = module_manager_init(kverbose);
+    if (module_result != E_OK) {
+        vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
+        vga_write("[FAIL] Error al inicializar Module Manager\n");
+        while(1) {
+            __asm__ volatile("hlt");
+        }
+    }
+    if (kverbose) {
+        vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
+        vga_write("== Module Manager inicializado ==\n");
+    }
+
+    // Cargar módulos del kernel
+    if (kverbose) {
+        vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
+        vga_write("\n== Cargando modulos del kernel ==\n");
+    }
+
+    // Cargar módulo ramdisk
+    module_entry_t* ramdisk_entry = ramdisk_get_entry();
+    if (ramdisk_entry == NULL) {
+        vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
+        vga_write("[FAIL] ramdisk_get_entry() retornó NULL\n");
+    }
+    
+    mid_t ramdisk_mid = module_register_static("ramdisk", ramdisk_entry);
+    if (ramdisk_mid > 0) {
+        if (kverbose) {
+            vga_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
+            vga_write("[MODULE] Ramdisk registrado con MID: ");
+            vga_write_dec(ramdisk_mid);
+            vga_write("\n");
+        }
+        
+        // Iniciar el módulo ramdisk
+        int ramdisk_start_result = module_start(ramdisk_mid);
+
+        if (ramdisk_start_result != E_OK) {
+            vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
+            vga_write("[FAIL] Error al iniciar modulo ramdisk\n");
+        }
+    } else {
+        vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
+        vga_write("[FAIL] Error al registrar modulo ramdisk\n");
+    }
+
+    if (kverbose) {
+        vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
+        vga_write("== Modulos del kernel cargados ==\n");
+    }
+
     // TODO: Inicializar subsistemas adicionales del kernel:
-    // - Syscalls
-    // - RAM Disk
-    // - Sistema de archivos
-    // - Module Manager
+    // - NEO (Formato de ejecutable)
+    // - Sistema de archivos (NeoFS)
 
     if (kverbose) {
         vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);

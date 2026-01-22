@@ -27,7 +27,7 @@ BOOT_DIR = $(ISO_DIR)/boot
 GRUB_DIR = $(BOOT_DIR)/grub
 
 # Flags de compilación
-CFLAGS = -std=gnu99 -ffreestanding -O2 -Wall -Wextra -Ilib/include -Idrivers/include -Imemory/include -Icore/include -fno-pie -fno-stack-protector
+CFLAGS = -std=gnu99 -ffreestanding -O2 -Wall -Wextra -Ilib/include -Idrivers/include -Imemory/include -Icore/include -Imodules/include -fno-pie -fno-stack-protector
 LDFLAGS = -ffreestanding -O2 -nostdlib -lgcc -no-pie -z noexecstack
 ASFLAGS = --noexecstack
 
@@ -45,12 +45,14 @@ C_SOURCES = core/src/kmain.c \
 			core/src/scheduler.c \
 			core/src/ipc.c \
 			core/src/syscall.c \
+			core/src/module.c \
             memory/src/memory.c \
             memory/src/pmm.c \
             memory/src/vmm.c \
             memory/src/heap.c \
             drivers/src/vga.c \
-            lib/src/string.c
+            lib/src/string.c \
+            modules/src/ramdisk.c
 
 # Archivos objeto (en el directorio build)
 ASM_OBJECTS = $(patsubst %.S,$(OBJ_DIR)/%.o,$(ASM_SOURCES))

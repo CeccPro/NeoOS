@@ -35,34 +35,34 @@
  * @param msg Mensaje de error
  */
 void panic(const char* msg) {
-        vga_set_color(VGA_COLOR_WHITE, VGA_COLOR_RED);
-        vga_write("\n\n\n                             !!! KERNEL PANIC !!!\n");
+    vga_set_color(VGA_COLOR_WHITE, VGA_COLOR_RED);
+    vga_write("\n\n\n                             !!! KERNEL PANIC !!!\n");
 
-        // Calcular espacios para centrar el mensaje
-        int len = 0;
-        const char* p = msg;
-        while (p && *p) {
-            len++;
-            p++;
-        }
-
-        int spaces = (48 - len + 17) / 2;
-
-        for (int i = 0; i < spaces; i++) {
-            vga_write(" ");
-        }
-
-        vga_write("Unhandled Error: ");
-        
-        if (msg) {
-            vga_write(msg);
-        } else {
-            vga_write("Unknown");
-        }
-        for (int i = 0; i < 2 ; i++) {
-            vga_write("\n");
-        }
-        // Detener el kernel
-        __asm__ volatile("cli; hlt");
-        while(1);
+    // Calcular espacios para centrar el mensaje
+    int len = 0;
+    const char* p = msg;
+    while (p && *p) {
+        len++;
+        p++;
     }
+
+    int spaces = (48 - len + 17) / 2;
+
+    for (int i = 0; i < spaces; i++) {
+        vga_write(" ");
+    }
+
+    vga_write("Unhandled Error: ");
+    
+    if (msg) {
+        vga_write(msg);
+    } else {
+        vga_write("Unknown");
+    }
+    for (int i = 0; i < 2 ; i++) {
+        vga_write("\n");
+    }
+    // Detener el kernel
+    __asm__ volatile("cli; hlt");
+    while(1);
+}

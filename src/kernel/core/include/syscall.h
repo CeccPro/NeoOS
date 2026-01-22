@@ -35,7 +35,20 @@
 #define SYS_GETINFO     13  // sys_getinfo(int type, void *buf)
 #define SYS_DEBUG       14  // sys_debug(const char *msg)
 
-#define SYSCALL_COUNT   15  // Total de syscalls
+// === Module Manager (15-19) ===
+#define SYS_MODLOAD     15  // sys_modload(const char *name)
+#define SYS_MODUNLOAD   16  // sys_modunload(mid_t mid)
+#define SYS_MODSTART    17  // sys_modstart(mid_t mid)
+#define SYS_MODSTOP     18  // sys_modstop(mid_t mid)
+#define SYS_MODSTATUS   19  // sys_modstatus(mid_t mid)
+
+// === Module IPC (20-23) ===
+#define SYS_MODSEND         20  // sys_modsend(mid_t mid, void *msg, size_t size)
+#define SYS_MODSEND_NAME    21  // sys_modsend_name(const char *name, void *msg, size_t size)
+#define SYS_MODCALL         22  // sys_modcall(mid_t mid, void *req, size_t req_sz, void *resp, size_t *resp_sz)
+#define SYS_MODGETID        23  // sys_modgetid(const char *name)
+
+#define SYSCALL_COUNT   24  // Total de syscalls
 
 /**
  * Tipos de información para sys_getinfo
@@ -135,6 +148,44 @@ static inline int sys_getinfo(int type, void *buf) {
 
 static inline int sys_debug(const char *msg) {
     return syscall(SYS_DEBUG, (uint32_t)msg, 0, 0, 0, 0);
+}
+
+// === Module Manager ===
+static inline mid_t sys_modload(const char *name) {
+    return syscall(SYS_MODLOAD, (uint32_t)name, 0, 0, 0, 0);
+}
+
+static inline int sys_modunload(mid_t mid) {
+    return syscall(SYS_MODUNLOAD, (uint32_t)mid, 0, 0, 0, 0);
+}
+
+static inline int sys_modstart(mid_t mid) {
+    return syscall(SYS_MODSTART, (uint32_t)mid, 0, 0, 0, 0);
+}
+
+static inline int sys_modstop(mid_t mid) {
+    return syscall(SYS_MODSTOP, (uint32_t)mid, 0, 0, 0, 0);
+}
+
+static inline int sys_modstatus(mid_t mid) {
+    return syscall(SYS_MODSTATUS, (uint32_t)mid, 0, 0, 0, 0);
+}
+
+// === Module IPC ===
+static inline int sys_modsend(mid_t mid, const void* msg, size_t size) {
+    return syscall(SYS_MODSEND, (uint32_t)mid, (uint32_t)msg, (uint32_t)size, 0, 0);
+}
+
+static inline int sys_modsend_name(const char* name, const void* msg, size_t size) {
+    return syscall(SYS_MODSEND_NAME, (uint32_t)name, (uint32_t)msg, (uint32_t)size, 0, 0);
+}
+
+static inline int sys_modcall(mid_t mid, const void* request, size_t request_size, void* response, size_t* response_size) {
+    return syscall(SYS_MODCALL, (uint32_t)mid, (uint32_t)request, (uint32_t)request_size, (uint32_t)response, (uint32_t)response_size);
+}
+
+static inline mid_t sys_modgetid(const char* name) {
+    return syscall(SYS_MODGETID, (uint32_t)name, 0, 0, 0, 0);
 }
 
 /**

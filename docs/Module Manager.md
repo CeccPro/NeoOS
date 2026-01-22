@@ -15,12 +15,15 @@ ss modload nombre_del_modulo
 ```
 O desde la librería de C/C++:
 ```c
-#include <module_manager.h>
-#include <error.h>
-int result = load_module("nombre_del_modulo");
-if (result == 0) {
+#include <neoos/syscall.h>
+#include <neoos/error.h>
+
+mid_t mid = sys_modload("nombre_del_modulo");
+if (mid > 0) {
+    printf("Módulo cargado con MID: %d\n", mid);
     return E_OK;
 } else {
+    printf("Error al cargar módulo: %s\n", error_to_string(mid));
     return E_MODULE_ERR;
 }
 ```
@@ -32,13 +35,20 @@ ss modunload nombre_del_modulo
 ```
 O desde la librería de C/C++:
 ```c
-#include <module_manager.h>
-#include <error.h>
-int result = unload_module("nombre_del_modulo");
-if (result == 0) {
-    return E_OK;
-} else {
-    return E_MODULE_ERR;
+#include <neoos/syscall.h>
+#include <neoos/error.h>
+
+// Primero obtener el MID del módulo
+mid_t mid = module_get_id("nombre_del_modulo");
+if (mid > 0) {
+    int result = sys_modunload(mid);
+    if (result == E_OK) {
+        printf("Módulo descargado correctamente\n");
+        return E_OK;
+    } else {
+        printf("Error al descargar módulo: %s\n", error_to_string(result));
+        return E_MODULE_ERR;
+    }
 }
 ```
 
@@ -62,7 +72,30 @@ Para verificar el estado de un módulo cargado, se puede utilizar el comando `mo
 ```nsh
 ss modstatus nombre_del_modulo
 ```
-Y devuelve el modstatus del módulo, indicando si está cargado o no.
+O desde la librería de C/C++:
+```c
+#include <neoos/syscall.h>
+#include <neoos/module.h>
+
+mid_t mid = module_get_id("nombre_del_modulo");
+if (mid > 0) {
+    int state = sys_modstatus(mid);
+    switch (state) {
+        case MODULE_STATE_UNLOADED:
+            printf("Módulo no cargado\n");
+            break;
+        case MODULE_STATE_LOADED:
+            printf("Módulo cargado pero no iniciado\n");
+            break;
+        case MODULE_STATE_RUNNING:
+            printf("Módulo en ejecución\n");
+            break;
+        case MODULE_STATE_STOPPED:
+            printf("Módulo detenido\n");
+            break;
+    }
+}
+```
 
 Los módulos se ubican en el directorio `/src/modules/`, y el Module Manager los gestiona desde allí. **Nota: El nombre del módulo debe coincidir con el nombre del archivo**
 
