@@ -117,7 +117,7 @@ Las syscalls más importantes del microkernel. Todo el resto del sistema se cons
 - `MODULE_STATE_STOPPED` (4): Detenido
 - `MODULE_STATE_UNLOADING` (5): En proceso de descarga
 
-### Module IPC (module.h)
+### PMIC - Process-Module Intercomunicator (module.h)
 
 | # | Syscall | Descripción |
 |---|---------|-------------|
@@ -127,7 +127,7 @@ Las syscalls más importantes del microkernel. Todo el resto del sistema se cons
 | 24 | `sys_modgetid(const char *name)` | Obtiene el MID de un módulo por nombre |
 
 **Características:**
-- Los módulos tienen colas IPC independientes de los procesos
+- Los módulos tienen colas PMIC independientes de los procesos (IPC es solo para procesos)
 - `sys_modsend` envía mensajes asíncronos a la cola del módulo
 - `sys_modcall` ejecuta petición-respuesta síncrona (RPC)
 - Los MID (Module ID) son diferentes de los PID (Process ID)
@@ -253,7 +253,7 @@ if (mid > 0) {
 }
 ```
 
-### Comunicarse con módulos por IPC
+### Comunicarse con módulos por PMIC
 ```c
 #include <neoos/module.h>
 #include <neoos/ramdisk.h>
@@ -269,7 +269,7 @@ if (ramdisk_mid > 0) {
     uint8_t resp_buffer[sizeof(ramdisk_response_t) + 8];
     size_t resp_size = sizeof(resp_buffer);
     
-    // Llamar al módulo (RPC)
+    // Llamar al módulo (RPC via PMIC)
     int result = sys_modcall(ramdisk_mid, &req, sizeof(req), resp_buffer, &resp_size);
     
     if (result == E_OK) {
@@ -301,7 +301,7 @@ if (result == E_OK) {
 | Memory (PMM/VMM/Heap) | ✅ Implementado | Paginación activa |
 | Priority syscalls | ✅ Implementado | 5 niveles de prioridad |
 | Module Manager | ✅ Implementado | Carga/descarga dinámica de módulos |
-| Module IPC | ✅ Implementado | Comunicación con módulos por IPC |
+| PMIC (Process-Module Intercomunicator) | ✅ Implementado | Comunicación con módulos via PMIC |
 | Syscall dispatcher | ✅ Implementado | Handler en int 0x80 |
 | sys_map/unmap/grant | ⏳ Pendiente | API de VMM disponible |
 | sys_wait (eventos) | ⏳ Pendiente | Para IRQs y sincronización |
@@ -333,6 +333,7 @@ El diseño minimalista de syscalls en NeoOS permite:
 
 Para detalles de implementación, consulte:
 - [ARCHITECTURE.md](../ARCHITECTURE.md) - Arquitectura general del sistema
-- [IPC.md](./IPC.md) - Detalles del sistema de mensajería
+- [IPC.md](./IPC.md) - Sistema de mensajería entre procesos
+- [PMIC.md](./PMIC.md) - Sistema de comunicación proceso-módulo
 - [Scheduler.md](./Process%20Scheduler.md) - Planificador de procesos
 - [Memory Manager.md](./Memory%20Manager.md) - Gestión de memoria

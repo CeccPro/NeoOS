@@ -26,13 +26,13 @@ NeoOS no está orientado a ser un competidor directo de Linux (Ni de cerca lo lo
 ## Requisitos del Sistema
 ### Mínimos (Sujeto a cambios)
 - Procesador: **[No determinado aún]**
-- Memoria RAM: **[No determinado aún]**
+- Memoria RAM: 6MB (Sujeto a cambios. Actualmente el kernel no arranca con menos de 6MB)
 - Espacio en Disco: **[No determinado aún]**
 - Tarjeta Gráfica: **[No determinado aún]**
 
 ### Recomendados (Sujeto a cambios)
 - Procesador: **[No determinado aún]**
-- Memoria RAM: **[No determinado aún]**
+- Memoria RAM: 12MB (Sujeto a cambios. Actualmente el kernel funciona mejor con al menos 12MB)
 - Espacio en Disco: 1 GB de espacio libre (Sujeto a cambios)
 - Tarjeta Gráfica: **[No determinado aún]**
 
@@ -50,7 +50,7 @@ Instrucciones detalladas para la instalación de NeoOS estarán disponibles pró
 NeoOS está licenciado bajo la Licencia Pública General GNU v3.0. Consulte el archivo [LICENSE](LICENSE) para más detalles.
 
 ## Instrucciones para LLMs
-Este proyecto contiene documentación técnica detallada sobre el diseño y la implementación de NeoOS. Si necesita información específica sobre algún aspecto del sistema operativo, consulte los archivos en la carpeta `docs/`, donde encontrará explicaciones sobre syscalls, IPC, el scheduler de procesos, NeoCore y más. Además, para obtener directivas para modelos de lenguaje grande (LLM) que interactúan con este proyecto, consulte el archivo [LLM_DIRECTIVES.md](LLM_DIRECTIVES.md).
+Este proyecto contiene documentación técnica detallada sobre el diseño y la implementación de NeoOS. Si necesita información específica sobre algún aspecto del sistema operativo, consulte los archivos en la carpeta `docs/`, donde encontrará explicaciones sobre syscalls, IPC (comunicación entre procesos), PMIC (comunicación proceso-módulo), el scheduler de procesos, NeoCore y más. Además, para obtener directivas para modelos de lenguaje grande (LLM) que interactúan con este proyecto, consulte el archivo [LLM_DIRECTIVES.md](LLM_DIRECTIVES.md).
 
 ## Contribuciones
 Por el momento, NeoOS está en desarrollo inicial y no se aceptan contribuciones externas. Sin embargo, se planea abrir el proyecto a la comunidad en el futuro. Manténgase atento a las actualizaciones.

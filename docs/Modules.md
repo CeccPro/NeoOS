@@ -5,7 +5,10 @@ En NeoOS, los módulos son componentes esenciales del sistema operativo que prop
 El Module Manager de NeoOS es responsable de la gestión de los módulos del sistema. Este componente permite cargar, descargar y actualizar módulos de manera segura y eficiente. Los módulos se ubican en el directorio `/src/modules/`, y el Module Manager los gestiona desde allí.
 
 ## Estructura de Módulos
-Cada módulo en NeoOS está estructurado de manera que incluye un identificador único (MID - Module ID) y puede interactuar con otros procesos y módulos a través del sistema de Comunicación entre Procesos (IPC). Los módulos pueden enviar y recibir mensajes utilizando sus MID, facilitando la coordinación y la gestión de tareas en el sistema operativo. 
+Cada módulo en NeoOS está estructurado de manera que incluye un identificador único (MID - Module ID) y puede interactuar con procesos a través del sistema PMIC (Process-Module Intercomunicator). Los módulos pueden recibir y responder a mensajes utilizando sus MID, facilitando la coordinación y la gestión de tareas en el sistema operativo. 
+
+**Nota**: Los módulos NO usan IPC (Inter-Process Communication), que está reservado para comunicación entre procesos. La comunicación con módulos se realiza mediante PMIC.
+
 ### Ejemplo de un módulo simple:
 ```c
 #include <module_manager.h>

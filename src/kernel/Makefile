@@ -52,7 +52,8 @@ C_SOURCES = core/src/kmain.c \
             memory/src/heap.c \
             drivers/src/vga.c \
             lib/src/string.c \
-            modules/src/ramdisk.c
+            modules/src/ramdisk.c \
+            modules/src/early_neofs.c
 
 # Archivos objeto (en el directorio build)
 ASM_OBJECTS = $(patsubst %.S,$(OBJ_DIR)/%.o,$(ASM_SOURCES))
@@ -94,7 +95,7 @@ img: $(BUILD_DIR)/$(KERNEL)
 # Ejecutar en QEMU (desde imagen de disco)
 run:
 	@echo "Ejecutando NeoOS en QEMU desde imagen de disco..."
-	@qemu-system-i386 -drive file=$(BUILD_DIR)/neoos.img,format=raw -m 512M
+	@qemu-system-i386 -drive file=$(BUILD_DIR)/neoos.img,format=raw -m 6M
 
 # Ejecutar en QEMU con debug
 debug:

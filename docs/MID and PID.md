@@ -7,7 +7,9 @@ El MID es un identificador único asignado a cada módulo del sistema operativo.
 ### Asignación de MID
 Los MID se asignan automáticamente cuando un módulo es cargado en el sistema. Cada módulo recibe un MID único que no se reutiliza mientras el módulo esté activo.
 ### Uso de MID
-Los procesos pueden utilizar el MID para enviar mensajes o solicitudes a módulos específicos. Esto es especialmente útil en el contexto de la Comunicación entre Procesos (IPC), donde los procesos necesitan interactuar con módulos del sistema. Para obtener el MID de un módulo, se puede utilizar la función `get_module_id(module_name)`.
+Los procesos pueden utilizar el MID para enviar mensajes o solicitudes a módulos específicos. Esto se realiza mediante PMIC (Process-Module Intercomunicator), que es diferente del IPC usado para comunicación entre procesos. Para obtener el MID de un módulo, se puede utilizar la función `module_get_id(module_name)` o la syscall `sys_modgetid(module_name)`.
+
+**Importante**: Los módulos NO usan IPC. La comunicación con módulos se hace exclusivamente a través de PMIC.
 
 ## PID (Process ID)
 El PID es un identificador único asignado a cada proceso en ejecución dentro del sistema operativo. El PID permite al sistema gestionar y controlar los procesos de manera efectiva, facilitando la asignación de recursos y la comunicación entre procesos.

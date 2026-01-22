@@ -42,7 +42,7 @@
 #define SYS_MODSTOP     18  // sys_modstop(mid_t mid)
 #define SYS_MODSTATUS   19  // sys_modstatus(mid_t mid)
 
-// === Module IPC (20-23) ===
+// === PMIC - Process-Module Intercomunicator (20-23) ===
 #define SYS_MODSEND         20  // sys_modsend(mid_t mid, void *msg, size_t size)
 #define SYS_MODSEND_NAME    21  // sys_modsend_name(const char *name, void *msg, size_t size)
 #define SYS_MODCALL         22  // sys_modcall(mid_t mid, void *req, size_t req_sz, void *resp, size_t *resp_sz)
@@ -171,7 +171,7 @@ static inline int sys_modstatus(mid_t mid) {
     return syscall(SYS_MODSTATUS, (uint32_t)mid, 0, 0, 0, 0);
 }
 
-// === Module IPC ===
+// === PMIC ===
 static inline int sys_modsend(mid_t mid, const void* msg, size_t size) {
     return syscall(SYS_MODSEND, (uint32_t)mid, (uint32_t)msg, (uint32_t)size, 0, 0);
 }

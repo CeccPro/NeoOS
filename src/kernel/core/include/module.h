@@ -42,7 +42,7 @@ typedef struct {
     int (*start)(void);     // Inicio del módulo
     int (*stop)(void);      // Detención del módulo
     int (*update)(void);    // Actualización/tick del módulo
-    int (*handle_message)(const void* msg, size_t size, void* response, size_t* response_size);  // Handler de mensajes IPC
+    int (*handle_message)(const void* msg, size_t size, void* response, size_t* response_size);  // Handler de mensajes PMIC
 } module_entry_t;
 
 /**
@@ -54,7 +54,7 @@ typedef struct module {
     module_state_t state;               // Estado actual
     module_entry_t* entry;              // Punto de entrada del módulo
     
-    // Cola IPC del módulo (usar typedef de ipc.h)
+    // Cola PMIC del módulo (Process-Module Intercomunicator)
     ipc_queue_t ipc_queue;
     
     // Información de dependencias

@@ -14,6 +14,7 @@
 // Definiciones de configuración
 #define KERNEL_VERSION "0.1.0"
 #define BUILD_DATE __DATE__ " " __TIME__
+#define MINIMAL_MEMORY_MB 5  // Memoria mínima requerida en MB - 1mb reservado por GRUB
 
 // Entrada principal del kernel
 void kernel_main(uint32_t magic, multiboot_info_t* mbi);

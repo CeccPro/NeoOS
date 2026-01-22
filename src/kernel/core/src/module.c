@@ -496,7 +496,7 @@ mid_t module_register_static(const char* name, module_entry_t* entry) {
     new_module->message_count = 0;
     new_module->next = NULL;
     
-    // Inicializar cola IPC
+    // Inicializar cola PMIC
     new_module->ipc_queue.head = NULL;
     new_module->ipc_queue.tail = NULL;
     new_module->ipc_queue.count = 0;

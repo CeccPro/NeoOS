@@ -44,7 +44,12 @@ NeoOS está construido sobre una arquitectura modular que permitirá a los usuar
    - Message queues por proceso (hasta 32 mensajes de 4KB cada uno)
    - Envío/recepción bloqueante y no bloqueante
 
-10. **Syscall Handler**: Dispatcher de syscalls mediante `int 0x80` implementado con 15 syscalls definidas para IPC, scheduler y gestión de memoria.
+10. **PMIC (Process-Module Intercomunicator)**: Sistema de comunicación entre procesos/kernel y módulos:
+   - Colas de mensajes independientes para cada módulo
+   - RPC síncrono con `module_call()` para petición-respuesta
+   - Envío asíncrono con `module_send()` para mensajes en cola
+
+11. **Syscall Handler**: Dispatcher de syscalls mediante `int 0x80` implementado con 24 syscalls definidas para IPC, PMIC, scheduler y gestión de memoria.
 
 #### [Pendiente de Implementación]
 1. **Module Manager**: Sistema de carga dinámica de módulos con soporte hotplug.
@@ -86,6 +91,7 @@ NeoOS/
 │   ├── Errors.md
 │   ├── Interrupts.md
 │   ├── IPC.md
+│   ├── PMIC.md
 │   ├── Kernel Initialization.md
 │   ├── Memory Manager.md
 │   ├── MID and PID.md

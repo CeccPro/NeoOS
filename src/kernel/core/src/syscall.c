@@ -186,7 +186,7 @@ int syscall_dispatch(uint32_t syscall_num, uint32_t arg1, uint32_t arg2, uint32_
             return module_get_state(mid);
         }
         
-        // ===== Module IPC =====
+        // ===== PMIC (Process-Module Intercomunicator) =====
         case SYS_MODSEND: {
             mid_t mid = (mid_t)arg1;
             const void* msg = (const void*)arg2;
