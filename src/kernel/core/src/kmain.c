@@ -321,11 +321,19 @@ void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
         vga_write("== Driver Manager inicializado ==\n");
     }
 
+    if (kverbose) {
+        vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
+        vga_write("== Inicializando drivers del sistema ==\n");
+    }
     // Registrar driver VGA
     device_type_t vga_types[] = {DEVICE_TYPE_VIDEO, 0};
     // Depuración: obtener entry y volcar antes de registrar
     driver_entry_t* dbg_vga_entry = vga_driver_get_entry();
     driver_register("vga", dbg_vga_entry, vga_types);
+    if (kverbose) {
+        vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
+        vga_write("== Drivers del sistema Inicializados ==\n");
+    }
 
     // Inicializar Device Manager
     if (kverbose) {
