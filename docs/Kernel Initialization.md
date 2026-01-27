@@ -13,7 +13,7 @@ El proceso de inicialización del kernel de NeoOS se lleva a cabo en las siguien
 - Si `kernel_main()` retorna, deshabilita interrupciones y entra en bucle infinito con `hlt`
 
 ### 2. Inicialización del Driver VGA
-- **Función**: `vga_init()` en `src/kernel/drivers/src/vga.c`
+- **Función**: `vga_init()` en `src/kernel/drivers/src/early_vga.c`
 - **Importancia**: Primer subsistema inicializado para poder mostrar mensajes
 - Configura el terminal VGA en modo texto 80x25
 - Buffer VGA ubicado en `0xB8000`
@@ -359,8 +359,8 @@ if (mm_result != E_OK) {
 - `src/kernel/core/include/error.h`: Definiciones de códigos de error
 
 ### Drivers
-- `src/kernel/drivers/src/vga.c`: Driver VGA modo texto 80x25
-- `src/kernel/drivers/include/vga.h`: API del driver VGA
+- `src/kernel/drivers/src/early_vga.c`: Driver VGA modo texto 80x25
+- `src/kernel/drivers/include/early_vga.h`: API del driver VGA
 
 ### Memory Manager
 - `src/kernel/memory/src/memory.c`: Coordinador, `memory_init()`

@@ -9,7 +9,7 @@
 #include "../../lib/include/types.h"
 #include "../../lib/include/string.h"
 #include "../../lib/include/multiboot.h"
-#include "../../drivers/include/vga.h"
+#include "../../drivers/include/early_vga.h"
 
 // Definiciones de configuración
 #define KERNEL_VERSION "0.1.0"

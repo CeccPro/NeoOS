@@ -46,11 +46,14 @@ C_SOURCES = core/src/kmain.c \
 			core/src/ipc.c \
 			core/src/syscall.c \
 			core/src/module.c \
+			core/src/device.c \
+			core/src/driver_manager.c \
             memory/src/memory.c \
             memory/src/pmm.c \
             memory/src/vmm.c \
             memory/src/heap.c \
-            drivers/src/vga.c \
+            drivers/src/early_vga.c \
+            drivers/src/vga_driver.c \
             lib/src/string.c \
             modules/src/ramdisk.c \
             modules/src/early_neofs.c

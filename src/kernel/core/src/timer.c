@@ -6,7 +6,7 @@
 #include "../../core/include/timer.h"
 #include "../../core/include/interrupts.h"
 #include "../../core/include/scheduler.h"
-#include "../../drivers/include/vga.h"
+#include "../../drivers/include/early_vga.h"
 
 // Variables globales del timer
 volatile uint32_t timer_ticks = 0;      // Contador de ticks desde el inicio

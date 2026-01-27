@@ -13,325 +13,45 @@
 #include "../../core/include/ipc.h"
 #include "../../core/include/syscall.h"
 #include "../../core/include/module.h"
+#include "../../core/include/device.h"
+#include "../../core/include/driver_manager.h"
 #include "../../memory/include/memory.h"
-#include "../../drivers/include/vga.h"
+#include "../../drivers/include/early_vga.h"
+#include "../../drivers/include/vga_driver.h"
 #include "../../lib/include/string.h"
 #include "../../modules/include/ramdisk.h"
 #include "../../modules/include/early_neofs.h"   
 
+// Funciones wrapper para VGA via PMIC
+void vga_write_pmic(const char* str) {
+    vga_message_t msg = { .type = VGA_MSG_WRITE };
+    strncpy(msg.data, str, sizeof(msg.data) - 1);
+    module_send_by_name("vga", &msg, sizeof(msg));
+}
+
+void vga_set_color_pmic(enum vga_color fg, enum vga_color bg) {
+    vga_color_message_t msg = { .type = VGA_MSG_SET_COLOR, .fg = fg, .bg = bg };
+    module_send_by_name("vga", &msg, sizeof(msg));
+}
+
+void vga_clear_pmic() {
+    uint32_t msg = VGA_MSG_CLEAR;
+    module_send_by_name("vga", &msg, sizeof(msg));
+}
+
+void vga_write_hex_pmic(uint32_t value) {
+    vga_number_message_t msg = { .type = VGA_MSG_WRITE_HEX, .value = value };
+    module_send_by_name("vga", &msg, sizeof(msg));
+}
+
+void vga_write_dec_pmic(uint32_t value) {
+    vga_number_message_t msg = { .type = VGA_MSG_WRITE_DEC, .value = value };
+    module_send_by_name("vga", &msg, sizeof(msg));
+}
+
 // Símbolo proporcionado por el linker script
 extern uint32_t __kernel_end;
 uint32_t kernel_end = (uint32_t)&__kernel_end;
-
-/**
- * Test de Early NeoFS usando PMIC
- */
-void test_early_neofs(mid_t neofs_mid, bool verbose) {
-    if (verbose) {
-        vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
-        vga_write("\n== Test de Early NeoFS (via PMIC) ==\n");
-    }
-    
-    uint8_t request_buffer[2048];
-    uint8_t response_buffer[4096];  // Aumentado para acomodar múltiples entradas de directorio
-    early_neofs_ipc_request_t* req = (early_neofs_ipc_request_t*)request_buffer;
-    early_neofs_ipc_response_t* resp = (early_neofs_ipc_response_t*)response_buffer;
-    
-    // Test 1: Crear un directorio
-    if (verbose) {
-        vga_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
-        vga_write("[TEST] Creando directorio /test via PMIC...\n");
-    }
-    memset(request_buffer, 0, sizeof(request_buffer));
-    req->command = EARLY_NEOFS_CMD_MKDIR;
-    strcpy(req->path, "/test");
-    req->permissions = 0755;
-    
-    size_t resp_size = sizeof(response_buffer);
-    int ipc_result = module_call(neofs_mid, request_buffer, sizeof(early_neofs_ipc_request_t), 
-                                        response_buffer, &resp_size);
-    if (ipc_result == E_OK && resp->result == E_OK) {
-        if (verbose) {
-            vga_set_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
-            vga_write("[OK] Directorio /test creado\n");
-        }
-    } else {
-        vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
-        vga_write("[FAIL] Error al crear /test (IPC: ");
-        vga_write(error_to_string(ipc_result));
-        vga_write(", FS: ");
-        vga_write(error_to_string(resp->result));
-        vga_write(")\n");
-    }
-    
-    // Test 2: Crear un archivo
-    if (verbose) {
-        vga_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
-        vga_write("[TEST] Creando archivo /test/hello.txt via PMIC...\n");
-    }
-    memset(request_buffer, 0, sizeof(request_buffer));
-    req->command = EARLY_NEOFS_CMD_CREATE;
-    strcpy(req->path, "/test/hello.txt");
-    req->permissions = 0644;
-    
-    resp_size = sizeof(response_buffer);
-    ipc_result = module_call(neofs_mid, request_buffer, sizeof(early_neofs_ipc_request_t), 
-                                    response_buffer, &resp_size);
-    if (ipc_result == E_OK && resp->result == E_OK) {
-        if (verbose) {
-            vga_set_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
-            vga_write("[OK] Archivo /test/hello.txt creado\n");
-        }
-    } else {
-        vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
-        vga_write("[FAIL] Error al crear archivo\n");
-    }
-    
-    // Test 3: Abrir archivo para escritura
-    if (verbose) {
-        vga_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
-        vga_write("[TEST] Abriendo archivo para escritura via PMIC...\n");
-    }
-    memset(request_buffer, 0, sizeof(request_buffer));
-    req->command = EARLY_NEOFS_CMD_OPEN;
-    strcpy(req->path, "/test/hello.txt");
-    req->flags = EARLY_NEOFS_O_WRONLY;
-    
-    resp_size = sizeof(response_buffer);
-    ipc_result = module_call(neofs_mid, request_buffer, sizeof(early_neofs_ipc_request_t), 
-                                    response_buffer, &resp_size);
-    int fd = -1;
-    if (ipc_result == E_OK && resp->result >= 0) {
-        fd = resp->result;
-        if (verbose) {
-            vga_set_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
-            vga_write("[OK] Archivo abierto con fd: ");
-            vga_write_dec(fd);
-            vga_write("\n");
-        }
-        
-        // Test 4: Escribir datos
-        const char* mensaje = "Hola desde NeoOS Early FS via PMIC!";
-        if (verbose) {
-            vga_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
-            vga_write("[TEST] Escribiendo: '");
-            vga_write(mensaje);
-            vga_write("'\n");
-        }
-        
-        memset(request_buffer, 0, sizeof(request_buffer));
-        req->command = EARLY_NEOFS_CMD_WRITE;
-        req->fd = fd;
-        req->count = strlen(mensaje);
-        memcpy(req->data, mensaje, req->count);
-        
-        resp_size = sizeof(response_buffer);
-        ipc_result = module_call(neofs_mid, request_buffer, 
-                                        sizeof(early_neofs_ipc_request_t) + req->count,
-                                        response_buffer, &resp_size);
-        if (ipc_result == E_OK && resp->result > 0) {
-            if (verbose) {
-                vga_set_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
-                vga_write("[OK] ");
-                vga_write_dec(resp->result);
-                vga_write(" bytes escritos\n");
-            }
-        } else {
-            vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
-            vga_write("[FAIL] Error al escribir\n");
-        }
-        
-        // Cerrar archivo
-        memset(request_buffer, 0, sizeof(request_buffer));
-        req->command = EARLY_NEOFS_CMD_CLOSE;
-        req->fd = fd;
-        resp_size = sizeof(response_buffer);
-        module_call(neofs_mid, request_buffer, sizeof(early_neofs_ipc_request_t), 
-                          response_buffer, &resp_size);
-    } else {
-        vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
-        vga_write("[FAIL] Error al abrir archivo para escritura\n");
-    }
-    
-    // Test 5: Abrir y leer archivo
-    if (verbose) {
-        vga_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
-        vga_write("[TEST] Abriendo archivo para lectura via PMIC...\n");
-    }
-    memset(request_buffer, 0, sizeof(request_buffer));
-    req->command = EARLY_NEOFS_CMD_OPEN;
-    strcpy(req->path, "/test/hello.txt");
-    req->flags = EARLY_NEOFS_O_RDONLY;
-    
-    resp_size = sizeof(response_buffer);
-    ipc_result = module_call(neofs_mid, request_buffer, sizeof(early_neofs_ipc_request_t), 
-                                    response_buffer, &resp_size);
-    if (ipc_result == E_OK && resp->result >= 0) {
-        fd = resp->result;
-        
-        // Leer datos
-        memset(request_buffer, 0, sizeof(request_buffer));
-        req->command = EARLY_NEOFS_CMD_READ;
-        req->fd = fd;
-        req->count = 128;
-        
-        resp_size = sizeof(response_buffer);
-        ipc_result = module_call(neofs_mid, request_buffer, sizeof(early_neofs_ipc_request_t),
-                                        response_buffer, &resp_size);
-        if (ipc_result == E_OK && resp->result > 0) {
-            if (verbose) {
-                vga_set_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
-                vga_write("[OK] ");
-                vga_write_dec(resp->result);
-                vga_write(" bytes leidos: '");
-                // Asegurar terminación nula
-                resp->data[resp->result] = '\0';
-                vga_write((char*)resp->data);
-                vga_write("'\n");
-            }
-        } else {
-            vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
-            vga_write("[FAIL] Error al leer\n");
-        }
-        
-        // Cerrar archivo
-        memset(request_buffer, 0, sizeof(request_buffer));
-        req->command = EARLY_NEOFS_CMD_CLOSE;
-        req->fd = fd;
-        resp_size = sizeof(response_buffer);
-        module_call(neofs_mid, request_buffer, sizeof(early_neofs_ipc_request_t), 
-                          response_buffer, &resp_size);
-    } else {
-        vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
-        vga_write("[FAIL] Error al abrir archivo para lectura\n");
-    }
-    
-    // Test 6: Obtener información del archivo
-    if (verbose) {
-        vga_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
-        vga_write("[TEST] Obteniendo informacion del archivo via PMIC...\n");
-    }
-    memset(request_buffer, 0, sizeof(request_buffer));
-    req->command = EARLY_NEOFS_CMD_STAT;
-    strcpy(req->path, "/test/hello.txt");
-    
-    resp_size = sizeof(response_buffer);
-    ipc_result = module_call(neofs_mid, request_buffer, sizeof(early_neofs_ipc_request_t),
-                                    response_buffer, &resp_size);
-    if (ipc_result == E_OK && resp->result == E_OK) {
-        early_neofs_stat_t* stat = (early_neofs_stat_t*)resp->data;
-        if (verbose) {
-            vga_set_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
-            vga_write("[OK] Stat exitoso:\n");
-            vga_write("  - Inode: ");
-            vga_write_dec(stat->inode_number);
-            vga_write("\n  - Tamano: ");
-            vga_write_dec(stat->size);
-            vga_write(" bytes\n");
-            vga_write("  - Tipo: ");
-            vga_write(stat->type == INODE_TYPE_FILE ? "Archivo" : "Directorio");
-            vga_write("\n");
-        }
-    } else {
-        vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
-        vga_write("[FAIL] Error en stat\n");
-    }
-    
-    // Test 7: Crear más archivos
-    if (verbose) {
-        vga_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
-        vga_write("[TEST] Creando archivos adicionales via PMIC...\n");
-    }
-    
-    memset(request_buffer, 0, sizeof(request_buffer));
-    req->command = EARLY_NEOFS_CMD_CREATE;
-    strcpy(req->path, "/test/file1.txt");
-    req->permissions = 0644;
-    resp_size = sizeof(response_buffer);
-    module_call(neofs_mid, request_buffer, sizeof(early_neofs_ipc_request_t), 
-                       response_buffer, &resp_size);
-    
-    memset(request_buffer, 0, sizeof(request_buffer));
-    req->command = EARLY_NEOFS_CMD_CREATE;
-    strcpy(req->path, "/test/file2.txt");
-    req->permissions = 0644;
-    resp_size = sizeof(response_buffer);
-    module_call(neofs_mid, request_buffer, sizeof(early_neofs_ipc_request_t), 
-                       response_buffer, &resp_size);
-    
-    memset(request_buffer, 0, sizeof(request_buffer));
-    req->command = EARLY_NEOFS_CMD_MKDIR;
-    strcpy(req->path, "/test/subdir");
-    req->permissions = 0755;
-    resp_size = sizeof(response_buffer);
-    module_call(neofs_mid, request_buffer, sizeof(early_neofs_ipc_request_t), 
-                       response_buffer, &resp_size);
-    
-    // Test 8: Listar directorio
-    if (verbose) {
-        vga_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
-        vga_write("[TEST] Listando directorio /test via PMIC...\n");
-    }
-    memset(request_buffer, 0, sizeof(request_buffer));
-    req->command = EARLY_NEOFS_CMD_READDIR;
-    strcpy(req->path, "/test");
-    req->max_entries = 32;
-    
-    resp_size = sizeof(response_buffer);
-    ipc_result = module_call(neofs_mid, request_buffer, sizeof(early_neofs_ipc_request_t),
-                                    response_buffer, &resp_size);
-    if (ipc_result == E_OK && resp->result > 0) {
-        early_neofs_dir_entry_t* entries = (early_neofs_dir_entry_t*)resp->data;
-        int count = resp->result;
-        if (verbose) {
-            vga_set_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
-            vga_write("[OK] ");
-            vga_write_dec(count);
-            vga_write(" entradas encontradas:\n");
-            for (int i = 0; i < count; i++) {
-                vga_write("  - ");
-                vga_write(entries[i].name);
-                vga_write(" (");
-                vga_write(entries[i].type == INODE_TYPE_DIR ? "DIR" : "FILE");
-                vga_write(")\n");
-            }
-        }
-    } else {
-        vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
-        vga_write("[FAIL] Error al listar directorio (PMIC: ");
-        vga_write(error_to_string(ipc_result));
-        vga_write(", FS: ");
-        vga_write_dec(resp->result);
-        vga_write(")\n");
-    }
-    
-    // Test 9: Eliminar un archivo
-    if (verbose) {
-        vga_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
-        vga_write("[TEST] Eliminando /test/file1.txt via PMIC...\n");
-    }
-    memset(request_buffer, 0, sizeof(request_buffer));
-    req->command = EARLY_NEOFS_CMD_UNLINK;
-    strcpy(req->path, "/test/file1.txt");
-    
-    resp_size = sizeof(response_buffer);
-    ipc_result = module_call(neofs_mid, request_buffer, sizeof(early_neofs_ipc_request_t),
-                                    response_buffer, &resp_size);
-    if (ipc_result == E_OK && resp->result == E_OK) {
-        if (verbose) {
-            vga_set_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
-            vga_write("[OK] Archivo eliminado\n");
-        }
-    } else {
-        vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
-        vga_write("[FAIL] Error al eliminar archivo\n");
-    }
-    
-    if (verbose) {
-        vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
-        vga_write("== Test de Early NeoFS completado ==\n");
-    }
-}
 
 /**
  * Kernel Main - Entry point del kernel en C
@@ -339,9 +59,6 @@ void test_early_neofs(mid_t neofs_mid, bool verbose) {
  * @param mbi: Puntero a la estructura multiboot_info
  */
 void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
-    // Inicializar el driver VGA
-    vga_init();
-    
     bool kdebug = false;
     bool kverbose = false;
     bool ksubsystems = true;
@@ -386,8 +103,8 @@ void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
 
     // Mostrar banner de bienvenida
     if (kverbose) {
-        vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
-        vga_write("================================================\n");
+        vga_set_color_pmic(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
+        vga_write_pmic("================================================\n");
         vga_set_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK);
         vga_write("          _   _             ___  ____  \n");
         vga_write("         | \\ | | ___  ___  / _ \\/ ___| \n");
@@ -586,6 +303,59 @@ void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
         vga_write("== Module Manager inicializado ==\n");
     }
 
+    // Inicializar Driver Manager
+    if (kverbose) {
+        vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
+        vga_write("\n== Inicializando Driver Manager ==\n");
+    }
+    int driver_result = driver_manager_init(kverbose);
+    if (driver_result != E_OK) {
+        vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
+        vga_write("[FAIL] Error al inicializar Driver Manager\n");
+        while(1) {
+            __asm__ volatile("hlt");
+        }
+    }
+    if (kverbose) {
+        vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
+        vga_write("== Driver Manager inicializado ==\n");
+    }
+
+    // Registrar driver VGA
+    device_type_t vga_types[] = {DEVICE_TYPE_VIDEO, 0};
+    // Depuración: obtener entry y volcar antes de registrar
+    driver_entry_t* dbg_vga_entry = vga_driver_get_entry();
+    vga_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
+    vga_write("[DRIVER] pre-register dump: entry=");
+    vga_write_hex((uint32_t)dbg_vga_entry);
+    vga_write(" ");
+    for (int p = 0; p < 10; p++) {
+        vga_write("ptr["); vga_write_dec(p); vga_write("]=");
+        uint32_t val = ((uint32_t*)dbg_vga_entry)[p];
+        vga_write_hex(val);
+        vga_write(" ");
+    }
+    vga_write("\n");
+    driver_register("vga", dbg_vga_entry, vga_types);
+
+    // Inicializar Device Manager
+    if (kverbose) {
+        vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
+        vga_write("\n== Inicializando Device Manager ==\n");
+    }
+    int device_result = device_manager_init(kverbose);
+    if (device_result != E_OK) {
+        vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
+        vga_write("[FAIL] Error al inicializar Device Manager\n");
+        while(1) {
+            __asm__ volatile("hlt");
+        }
+    }
+    if (kverbose) {
+        vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
+        vga_write("== Device Manager inicializado ==\n");
+    }
+
     // Cargar módulos del kernel
     if (kverbose) {
         vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
@@ -653,10 +423,6 @@ void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
         vga_write("== Modulos del kernel cargados ==\n");
     }
 
-    // Test de Early NeoFS usando PMIC
-    if (early_neofs_mid > 0) {
-        test_early_neofs(early_neofs_mid, kverbose);
-    }
 
     // TODO: Inicializar subsistemas adicionales del kernel:
     // - NEO (Formato de ejecutable)
@@ -674,6 +440,7 @@ void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
     }
 
     // Transferir el control al scheduler (nunca retorna)
+    vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
     scheduler_switch();
 
     // Detener el kernel si llega aquí (no debería, pero

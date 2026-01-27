@@ -1,7 +1,7 @@
 # Makefile principal de NeoOS
 .PHONY: all kernel img run clean commit help comp clean-all
 
-all: kernel
+all: clean kernel img
 
 kernel:
 	@echo "Compilando el kernel..."

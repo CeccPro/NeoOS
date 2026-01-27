@@ -8,7 +8,7 @@
 #include "../../core/include/error.h"
 #include "../../memory/include/memory.h"
 #include "../../lib/include/string.h"
-#include "../../drivers/include/vga.h"
+#include "../../drivers/include/early_vga.h"
 
 // Buffer del ramdisk
 static uint8_t* ramdisk_buffer = NULL;

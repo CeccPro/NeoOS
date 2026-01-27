@@ -7,7 +7,7 @@
 #include "../../core/include/timer.h"
 #include "../../core/include/error.h"
 #include "../../core/include/ipc.h"
-#include "../../drivers/include/vga.h"
+#include "../../drivers/include/early_vga.h"
 #include "../../lib/include/string.h"
 #include "../../memory/include/memory.h"
 

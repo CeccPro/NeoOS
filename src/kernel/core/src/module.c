@@ -9,7 +9,7 @@
 #include "../include/ipc.h"
 #include "../../lib/include/string.h"
 #include "../../memory/include/memory.h"
-#include "../../drivers/include/vga.h"
+#include "../../drivers/include/early_vga.h"
 
 // Lista de módulos cargados
 static module_t* module_list_head = NULL;

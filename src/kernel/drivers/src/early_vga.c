@@ -3,7 +3,7 @@
  * Driver básico para modo texto VGA 80x25
  */
 
-#include "../include/vga.h"
+#include "../include/early_vga.h"
 
 // Dirección de memoria del buffer VGA
 static uint16_t* const VGA_MEMORY = (uint16_t*)0xB8000;

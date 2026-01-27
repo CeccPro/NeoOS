@@ -9,7 +9,7 @@
 #include "../../core/include/timer.h"
 #include "../../memory/include/memory.h"
 #include "../../lib/include/string.h"
-#include "../../drivers/include/vga.h"
+#include "../../drivers/include/early_vga.h"
 
 // Estado global del filesystem
 static uint8_t* fs_buffer = NULL;

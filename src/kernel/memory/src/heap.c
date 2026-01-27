@@ -16,7 +16,7 @@
 
 #include "../include/memory.h"
 #include "../../core/include/kconfig.h"
-#include "../../drivers/include/vga.h"
+#include "../../drivers/include/early_vga.h"
 #include "../../lib/include/string.h"
 
 #define HEAP_MAGIC 0x12345678

@@ -303,8 +303,8 @@ El kernel está funcional con:
 - `arch/arm/boot/kmain.S` - Entry point ARM [Pendiente]
 
 #### Drivers (drivers/) - [IMPLEMENTADO]
-- `drivers/src/vga.c` - Terminal VGA en modo texto 80x25 [Implementado]
-- `drivers/include/vga.h` - API del driver VGA [Implementado]
+- `drivers/src/early_vga.c` - Terminal VGA en modo texto 80x25 [Implementado]
+- `drivers/include/early_vga.h` - API del driver VGA [Implementado]
 
 #### Librería (lib/) - [IMPLEMENTADO]
 - `lib/src/string.c` - Funciones de strings [Implementado]

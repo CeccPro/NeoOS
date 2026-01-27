@@ -140,9 +140,9 @@ NeoOS/
 │       │       └── syscall.h
 │       ├── drivers/            # Drivers de hardware
 │       │   ├── src/
-│       │   │   └── vga.c       # Driver VGA [Impl]
+│       │   │   └── early_vga.c       # Driver VGA [Impl]
 │       │   └── include/
-│       │       └── vga.h
+│       │       └── early_vga.h
 │       ├── lib/                # Biblioteca estándar del kernel [Impl]
 │       │   ├── src/
 │       │   │   └── string.c    # Funciones de strings [Impl]

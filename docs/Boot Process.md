@@ -47,7 +47,7 @@ El entry point `_start` es la primera función que se ejecuta en el kernel:
    - Entra en un bucle infinito con `hlt` y `jmp` para manejar NMIs
 
 ### 3. Inicialización del Driver VGA
-**Función**: `vga_init()` en `src/kernel/drivers/src/vga.c`
+**Función**: `vga_init()` en `src/kernel/drivers/src/early_vga.c`
 
 Lo primero que hace `kernel_main()` es inicializar el driver VGA para poder mostrar mensajes:
 - Configura el buffer VGA en `0xB8000`

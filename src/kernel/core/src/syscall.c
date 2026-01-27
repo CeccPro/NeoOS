@@ -11,7 +11,7 @@
 #include "../include/ipc.h"
 #include "../include/module.h"
 #include "../../memory/include/memory.h"
-#include "../../drivers/include/vga.h"
+#include "../../drivers/include/early_vga.h"
 
 /**
  * Handler de syscalls en C

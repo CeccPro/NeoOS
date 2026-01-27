@@ -5,7 +5,7 @@
 
 #include "../include/memory.h"
 #include "../../core/include/kconfig.h"
-#include "../../drivers/include/vga.h"
+#include "../../drivers/include/early_vga.h"
 
 /**
  * Inicializa el Memory Manager completo

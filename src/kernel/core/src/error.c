@@ -4,7 +4,7 @@
  */
 
 #include "../include/error.h"
-#include "../../drivers/include/vga.h"
+#include "../../drivers/include/early_vga.h"
 
 /**
  * Convierte un código de error a su nombre como string

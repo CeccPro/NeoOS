@@ -9,7 +9,7 @@
 
 #include "../include/memory.h"
 #include "../../core/include/kconfig.h"
-#include "../../drivers/include/vga.h"
+#include "../../drivers/include/early_vga.h"
 #include "../../lib/include/string.h"
 
 // Bitmap de páginas físicas
@@ -120,8 +120,9 @@ int pmm_init(multiboot_info_t* mbi, __attribute__((unused)) bool kdebug, __attri
     pmm_bitmap_size = (bitmap_bytes + 3) / 4;  // Tamaño en DWORDs
 
     // Colocar el bitmap después del kernel
-    // El símbolo kernel_end es proporcionado por el linker script
-    pmm_bitmap = (uint32_t*)&kernel_end;
+    // El símbolo `kernel_end` declarado en C contiene la dirección final
+    // del kernel; debemos usar su valor, no la dirección de la variable.
+    pmm_bitmap = (uint32_t*)kernel_end;
 
     if (is_kdebug()) {
         vga_write("[PMM] Bitmap ubicado en: ");

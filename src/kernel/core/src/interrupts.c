@@ -6,7 +6,7 @@
 #include "../../core/include/interrupts.h"
 #include "../../core/include/idt.h"
 #include "../../core/include/gdt.h"
-#include "../../drivers/include/vga.h"
+#include "../../drivers/include/early_vga.h"
 #include "../../lib/include/string.h"
 
 // Array de handlers de interrupciones
