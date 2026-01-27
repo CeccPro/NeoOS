@@ -325,17 +325,6 @@ void kernel_main(uint32_t magic, multiboot_info_t* mbi) {
     device_type_t vga_types[] = {DEVICE_TYPE_VIDEO, 0};
     // Depuración: obtener entry y volcar antes de registrar
     driver_entry_t* dbg_vga_entry = vga_driver_get_entry();
-    vga_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
-    vga_write("[DRIVER] pre-register dump: entry=");
-    vga_write_hex((uint32_t)dbg_vga_entry);
-    vga_write(" ");
-    for (int p = 0; p < 10; p++) {
-        vga_write("ptr["); vga_write_dec(p); vga_write("]=");
-        uint32_t val = ((uint32_t*)dbg_vga_entry)[p];
-        vga_write_hex(val);
-        vga_write(" ");
-    }
-    vga_write("\n");
     driver_register("vga", dbg_vga_entry, vga_types);
 
     // Inicializar Device Manager
